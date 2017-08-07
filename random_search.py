@@ -1,3 +1,4 @@
+import numpy as np
 from optimizer_base import Optimizer
 
 class RandomSearchOptimizer(Optimizer):

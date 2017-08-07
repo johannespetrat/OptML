@@ -87,6 +87,8 @@ if __name__ == "__main__":
     print(clf_score(target, bayes_best_model.predict(data)))
 
 
-    plt.plot([v[0] for v in bayesOpt.hyperparam_history])
-    plt.plot([v[0] for v in rand_search.hyperparam_history])
+    plt.plot([v[0] for v in bayesOpt.hyperparam_history], label='BayesOpt')
+    plt.plot([v[0] for v in rand_search.hyperparam_history], label='Random Search')
+    plt.plot([v[0] for v in geneticOpt.hyperparam_history], label='Genetic Algo')
+    plt.legend()
     plt.show()
