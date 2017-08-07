@@ -40,7 +40,7 @@ class BayesianOptimizer(Optimizer):
 
     def get_next_hyperparameters(self, optimiser):
         best_params = {}
-        for i in range(n_restarts_optimizer):
+        for i in range(self.n_restarts_optimizer):
             start_vals = np.random.uniform(np.array(self.bounds_arr)[:,0], np.array(self.bounds_arr)[:,1])
             #minimized = minimize(lambda x: -1 * optimiser.predict(x), start_vals, bounds=, method='L-BFGS-B')            
             minimized = minimize(lambda x: self.upper_confidence_bound(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')

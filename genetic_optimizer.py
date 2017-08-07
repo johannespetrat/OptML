@@ -69,8 +69,8 @@ class GeneticOptimizer(Optimizer):
         """
         population = self.init_population()
         fitnesses = [self.calculate_fitness(individual['params'], X, y) for individual in population]
-        self.hyperparam_history.append(([f['fitness'] for f in fitnesses],
-                                        [f['params'] for f in fitnesses]))
+        self.hyperparam_history += zip([f['fitness'] for f in fitnesses],
+                                        [f['params'] for f in fitnesses])
 
         it = 0
         improvement_count = 0
@@ -83,8 +83,8 @@ class GeneticOptimizer(Optimizer):
 
             new_params_with_fitness = self.calculate_fitness(params, X, y)
             fitnesses.append(new_params_with_fitness)
-            self.hyperparam_history.append(new_params_with_fitness['fitness'],
-                                           new_params_with_fitness['params'])
+            self.hyperparam_history.append((new_params_with_fitness['fitness'],
+                                           new_params_with_fitness['params']))
             it += 1
             if new_params_with_fitness['fitness'] > current_best:
                 current_best = new_params_with_fitness['fitness']

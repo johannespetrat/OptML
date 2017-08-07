@@ -5,6 +5,7 @@ from sklearn.base import BaseEstimator
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+import sklearn.gaussian_process as gp
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation
@@ -59,14 +60,11 @@ if __name__ == "__main__":
     def clf_score(y_true,y_pred):
         return np.sum(y_true==y_pred)/float(len(y_true))
 
-    rand_search = RandomSearchOptimizer(nn_model,
+    rand_search = RandomSearchOptimizer(svm,
                                         eval_func=clf_score,
-                                        hyperparams=nn_hyperparams_grid.keys(), 
-                                        hyperparams_grid=nn_hyperparams_grid)
-    rand_best_params, rand_best_model = rand_search.fit(data, target, 100)
-
-    rand_best_model.fit(data, target)
-    print(clf_score(target, rand_best_model.predict(data)))
+                                        hyperparams=svm_hyperparams_grid.keys(), 
+                                        hyperparams_grid=svm_hyperparams_grid)
+    rand_best_params, rand_best_model = rand_search.fit(data, target, 100)    
 
     kernel = gp.kernels.Matern()
     n_restarts_optimizer = 10
@@ -74,18 +72,24 @@ if __name__ == "__main__":
     svm_bounds = {'C':[0.1,5],'degree':[1,5]}
     nn_bounds = {'hidden_dim':[2,200]}
 
-    bayesOpt = BayesianOptimizer(nn_model, ['hidden_dim'], kernel, n_restarts_optimizer, clf_score, nn_bounds)
+    bayesOpt = BayesianOptimizer(svm, ['C','degree'], kernel, n_restarts_optimizer, clf_score, svm_bounds)
     bayes_best_params, bayes_best_model = bayesOpt.fit(data, target, 10, [10])
 
     n_init_samples = 4    
-    mutation_noise = {'hidden_dim': 5}
-    geneticOpt = GeneticOptimizer(nn_model, ['hidden_dim'], clf_score, nn_bounds, n_init_samples, 
+    #mutation_noise = {'hidden_dim': 5}
+    mutation_noise = {'C': 0.4, 'degree': 0.4}
+    geneticOpt = GeneticOptimizer(svm, ['C','degree'], clf_score, svm_bounds, n_init_samples, 
                                   'RouletteWheel', mutation_noise)
     genetic_best_params, genetic_best_model = geneticOpt.fit(data, target, 50)
 
-    bayes_best_model.fit(data, target)
-    print(clf_score(target, bayes_best_model.predict(data)))
+    rand_best_model.fit(data, target)
+    print("Random Search: {}".format(clf_score(target, rand_best_model.predict(data))))
 
+    bayes_best_model.fit(data, target)
+    print("Bayesian Optimisation: {}".format(clf_score(target, bayes_best_model.predict(data))))
+
+    genetic_best_model.fit(data, target)
+    print("Genetic Algo: {}".format(clf_score(target, genetic_best_model.predict(data))))
 
     plt.plot([v[0] for v in bayesOpt.hyperparam_history], label='BayesOpt')
     plt.plot([v[0] for v in rand_search.hyperparam_history], label='Random Search')
