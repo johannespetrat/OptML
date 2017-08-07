@@ -15,7 +15,7 @@ class RandomSearchOptimizer(Optimizer):
             new_hyperparams[key] = np.random.choice(val_range)
         return new_hyperparams
 
-    def fit(self, X, y, n_iters):
+    def fit(self, X_train, y_train, X_test, y_test, n_iters):
         # get the hyperparameters of the base model
         hyperparams = self.model.get_params()
         # and update them with the new hyperparameters
@@ -24,8 +24,8 @@ class RandomSearchOptimizer(Optimizer):
             hyperparams.update(new_hyperparams)
             new_model = self.model.__class__(**hyperparams)
 
-            new_model.fit(X,y)
-            score = self.eval_func(y, new_model.predict(X))
+            new_model.fit(X_train,y_train)
+            score = self.eval_func(y_test, new_model.predict(X_test))
             self.hyperparam_history.append((score, new_hyperparams))
         best_params_idx = np.argmax([score for score, params in self.hyperparam_history])
 

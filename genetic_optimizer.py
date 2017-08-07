@@ -23,10 +23,10 @@ class GeneticOptimizer(Optimizer):
     def init_population(self):
         return [{'params': self._sample_params()} for _ in range(self.n_init_samples)]
 
-    def calculate_fitness(self, params, X, y):
+    def calculate_fitness(self, params, X_train, y_train, X_test, y_test):
         model = self.build_new_model(params)
-        model.fit(X,y)
-        score = self.fitness_function(y, model.predict(X))
+        model.fit(X_train,y_train)
+        score = self.fitness_function(y_test, model.predict(X_test))
         return {'params': params, 'fitness': score}
 
     def cutoff_fitness(self, fitness):
@@ -56,19 +56,24 @@ class GeneticOptimizer(Optimizer):
 
     def mutate(self, params):
         for k in params.keys():
-            params[k] += self.mutation_noise[k] * np.random.randn(1)
+            with_noise = self.mutation_noise[k] * np.random.randn(1)
+            if with_noise < self.bounds[k][0]:
+                with_noise = self.bounds[k][0]
+            elif with_noise > self.bounds[k][1]:
+                with_noise = self.bounds[k][1]
+            params[k] += with_noise
         return params
 
     def select_best(self, fitnesses):
         best_idx = np.argmax([f['fitness'] for f in fitnesses])
         return fitnesses[best_idx]['params']
 
-    def fit(self, X, y, max_iters, n_tries=5):
+    def fit(self, X_train, y_train, X_test, y_test, max_iters, n_tries=5):
         """
         n_tries: number of attempts to improve the parameters. stopping condition
         """
         population = self.init_population()
-        fitnesses = [self.calculate_fitness(individual['params'], X, y) for individual in population]
+        fitnesses = [self.calculate_fitness(individual['params'], X_train, y_train, X_test, y_test) for individual in population]
         self.hyperparam_history += zip([f['fitness'] for f in fitnesses],
                                         [f['params'] for f in fitnesses])
 
@@ -81,7 +86,7 @@ class GeneticOptimizer(Optimizer):
             params = self.crossover(parents)
             params = self.mutate(params)
 
-            new_params_with_fitness = self.calculate_fitness(params, X, y)
+            new_params_with_fitness = self.calculate_fitness(params, X_train, y_train, X_test, y_test)
             fitnesses.append(new_params_with_fitness)
             self.hyperparam_history.append((new_params_with_fitness['fitness'],
                                            new_params_with_fitness['params']))

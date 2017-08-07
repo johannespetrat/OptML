@@ -53,7 +53,7 @@ class BayesianOptimizer(Optimizer):
             self.non_convergence_count += 1
             return {k:v for k,v in zip(self.hyperparams, start_vals)}
 
-    def fit(self, X, y, n_iters, start_vals):
+    def fit(self, X_train, y_train, X_test, y_test, n_iters, start_vals):
         """
         """
         self.non_convergence_count = 0
@@ -73,8 +73,8 @@ class BayesianOptimizer(Optimizer):
 
             new_model = self.build_new_model(new_hyperparams)
 
-            new_model.fit(X, y)
-            score = self.eval_func(y, new_model.predict(X))
+            new_model.fit(X_train, y_train)
+            score = self.eval_func(y_test, new_model.predict(X_test))
             self.hyperparam_history.append((score, new_hyperparams))
         
         best_params, best_model = self.get_best_params_and_model()
