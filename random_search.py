@@ -1,3 +1,5 @@
+from optimizer_base import Optimizer
+
 class RandomSearchOptimizer(Optimizer):
     def __init__(self, model, eval_func, hyperparams, hyperparams_grid):        
         self.model = model
