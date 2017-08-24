@@ -14,6 +14,7 @@ from keras.layers import Dense, Activation
 from random_search import RandomSearchOptimizer
 from bayesian_optimizer import BayesianOptimizer
 from genetic_optimizer import GeneticOptimizer
+from optimizer_base import Parameter
 
 
 class NNModel(BaseEstimator):
@@ -41,20 +42,7 @@ class NNModel(BaseEstimator):
         return {'batch_size': self.batch_size, 
                 'hidden_dim': self.hidden_dim, 
                 'input_dim': self.input_dim, 
-                'train_epochs': self.epochs}
-
-class Parameter(object):
-    def __init__(self, name, param_type, lower, upper, distribution=None):
-        # continuous, categorical, binary, integer
-        param_type = param_type.lower()
-        if not param_type in ['categorical', 'continuous', 'integer', 'boolean']:
-            raise ValueError("param_type needs to be 'categorical','continuous','integer' or 'boolean'")
-        self.param_type = param_type.lower()
-        self.lower = lower
-        self.upper = upper
-        self.name = name
-        if distribution is not None:
-            self.distribution = distribution     
+                'train_epochs': self.epochs}    
 
 
 if __name__ == "__main__":
@@ -89,33 +77,26 @@ if __name__ == "__main__":
                                         hyperparams=svm_params,
                                         grid_size=10)
 
-    kernel = gp.kernels.Matern()
-    n_restarts_optimizer = 10
-    rf_bounds = {'min_samples_split':[2,6],'min_weight_fraction_leaf':[0,0.5]}
-    svm_bounds = {'C':[0.1,5],'degree':[1,5]}
-    nn_bounds = {'hidden_dim':[2,200]}
-
+    kernel = gp.kernels.Matern()        
     bayesOpt = BayesianOptimizer(model=svm, 
                                  hyperparams=svm_params, 
-                                 kernel=kernel, 
-                                 n_restarts_optimizer=n_restarts_optimizer, 
+                                 kernel=kernel,                                  
                                  eval_func=clf_score)
-    bayes_best_params, bayes_best_model = bayesOpt.fit(X_train, y_train, X_test, y_test, 10)
+    
 
 
     n_init_samples = 4    
     #mutation_noise = {'hidden_dim': 5}
-    mutation_noise1 = {'C': 0.4, 'degree': 0.4}
-    mutation_noise2 = {'C': 2, 'degree': 2}
-    geneticOpt1 = GeneticOptimizer(svm, ['C','degree'], clf_score, svm_bounds, n_init_samples, 
-                                  'RouletteWheel', mutation_noise1)
-    geneticOpt2 = GeneticOptimizer(svm, ['C','degree'], clf_score, svm_bounds, n_init_samples, 
-                                  'RouletteWheel', mutation_noise2)
+    mutation_noise = {'C': 0.4, 'degree': 0.4}    
+    svm_bounds = {'C':[0.1,5],'degree':[1,5]}    
+
+    geneticOpt = GeneticOptimizer(svm, svm_params, clf_score, n_init_samples, 
+                                 'RouletteWheel', mutation_noise)
+    genetic_best_params, genetic_best_model = geneticOpt.fit(X_train, y_train, X_test, y_test, 50)    
 
     rand_best_params, rand_best_model = rand_search.fit(X_train, y_train, X_test, y_test, 50)
     bayes_best_params, bayes_best_model = bayesOpt.fit(X_train, y_train, X_test, y_test, 10)
-    genetic_best_params1, genetic_best_model1 = geneticOpt1.fit(X_train, y_train, X_test, y_test, 50)
-    genetic_best_params2, genetic_best_model2 = geneticOpt2.fit(X_train, y_train, X_test, y_test, 50)
+    genetic_best_params, genetic_best_model = geneticOpt.fit(X_train, y_train, X_test, y_test, 50)    
 
     rand_best_model.fit(data, target)
     print("Random Search: {}".format(clf_score(y_test, rand_best_model.predict(X_test))))
@@ -123,14 +104,11 @@ if __name__ == "__main__":
     bayes_best_model.fit(data, target)
     print("Bayesian Optimisation: {}".format(clf_score(y_test, bayes_best_model.predict(X_test))))
 
-    genetic_best_model1.fit(data, target)
-    genetic_best_model2.fit(data, target)
-    print("Genetic Algo 1: {}".format(clf_score(y_test, genetic_best_model1.predict(X_test))))
-    print("Genetic Algo 2: {}".format(clf_score(y_test, genetic_best_model2.predict(X_test))))
+    genetic_best_model.fit(data, target)    
+    print("Genetic Algo: {}".format(clf_score(y_test, genetic_best_model.predict(X_test))))
 
     plt.plot([v[0] for v in bayesOpt.hyperparam_history], label='BayesOpt')
     plt.plot([v[0] for v in rand_search.hyperparam_history], label='Random Search')
-    plt.plot([v[0] for v in geneticOpt1.hyperparam_history], label='Genetic Algo 1')
-    plt.plot([v[0] for v in geneticOpt2.hyperparam_history], label='Genetic Algo 2')
+    plt.plot([v[0] for v in geneticOpt.hyperparam_history], label='Genetic Algo')    
     plt.legend()
     plt.show()

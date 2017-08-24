@@ -2,14 +2,13 @@ import numpy as np
 from optimizer_base import Optimizer
 
 class GeneticOptimizer(Optimizer):
-    def __init__(self, model, hyperparams, eval_func, bounds, n_init_samples, 
+    def __init__(self, model, hyperparams, eval_func, n_init_samples,
                  parent_selection_method, mutation_noise):
         self.model = model
         self.hyperparams = hyperparams
         self.hyperparam_history = []
-        self.fitness_function = eval_func
-        self.bounds = bounds        
-        self.bounds_arr = np.array([bounds[hp] for hp in self.hyperparams])
+        self.fitness_function = eval_func        
+        self.bounds = {hp.name:[hp.lower, hp.upper] for hp in self.hyperparams}
         self.n_init_samples = n_init_samples
         self.parent_selection_method = parent_selection_method
         self.mutation_noise = mutation_noise
@@ -17,11 +16,18 @@ class GeneticOptimizer(Optimizer):
     def get_next_hyperparameters(self):
         pass
 
-    def _sample_params(self):
-        return {hp: np.random.uniform(*self.bounds[hp]) for hp in self.hyperparams}
+    def _random_sample(self):
+        sampled_params = {}
+        for hp in self.hyperparams:
+            v = np.random.uniform(hp.lower, hp.upper)
+            if hp.param_type == 'integer':                
+                sampled_params[hp.name] = int(round(v))
+            else:
+                sampled_params[hp.name] = v
+        return sampled_params
 
     def init_population(self):
-        return [{'params': self._sample_params()} for _ in range(self.n_init_samples)]
+        return [{'params': self._random_sample()} for _ in range(self.n_init_samples)]
 
     def calculate_fitness(self, params, X_train, y_train, X_test, y_test):
         model = self.build_new_model(params)

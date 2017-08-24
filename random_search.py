@@ -2,12 +2,11 @@ import numpy as np
 from optimizer_base import Optimizer, MissingValueException
 
 class RandomSearchOptimizer(Optimizer):
-    def __init__(self, model, eval_func, hyperparams, grid_size, categorical_possible_values=None):        
+    def __init__(self, model, eval_func, hyperparams, grid_size):
         self.model = model
         self.eval_func = eval_func
         self.hyperparam_history = []
         self.hyperparams = hyperparams
-        self.categorical_possible_values = categorical_possible_values
         self.hyperparams_grid = self.build_param_grid(grid_size)     
 
     def build_param_grid(self, grid_size):
@@ -22,7 +21,7 @@ class RandomSearchOptimizer(Optimizer):
                 param_range = np.linspace(h.lower, h.upper, grid_size)
             elif h.param_type == 'categorical': 
                 try:
-                    param_range = self.categorical_possible_values[h.name]               
+                    param_range = np.choice(h.possible_values)
                 except KeyError:
                     raise MissingValueException("Need to provide possible values for the parameter '{}'".format(h.name))
             elif h.param_type == 'boolean':

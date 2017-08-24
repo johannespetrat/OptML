@@ -30,3 +30,19 @@ class Optimizer(object):
 
 class MissingValueException(Exception):
     pass
+
+class Parameter(object):
+    def __init__(self, name, param_type, lower, upper, possible_values=None, distribution=None):
+        # continuous, categorical, binary, integer
+        param_type = param_type.lower()
+        if not param_type in ['categorical', 'continuous', 'integer', 'boolean']:
+            raise ValueError("param_type needs to be 'categorical','continuous','integer' or 'boolean'")
+        if (param_type == 'categorical') and (possible_values is None):
+            raise MissingValueException("Need to provide possible values for categorical parameters.")
+        self.possible_values = possible_values
+        self.param_type = param_type.lower()
+        self.lower = lower
+        self.upper = upper
+        self.name = name
+        if distribution is not None:
+            self.distribution = distribution 

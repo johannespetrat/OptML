@@ -5,21 +5,22 @@ import sklearn.gaussian_process as gp
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-from optimizer_base import Optimizer
+import sklearn.gaussian_process as gp
+from optimizer_base import Optimizer, MissingValueException
 
 
 class BayesianOptimizer(Optimizer):
     """
     different objective functions taken from here https://arxiv.org/pdf/1206.2944.pdf
     """
-    def __init__(self, model, hyperparams, kernel, n_restarts_optimizer, eval_func):
+    def __init__(self, model, hyperparams, eval_func, kernel=gp.kernels.Matern(), n_restarts_optimizer=10):
         self.model = model
         self.hyperparams = hyperparams
         self.kernel = kernel
         self.n_restarts_optimizer = n_restarts_optimizer
         self.hyperparam_history = []
         self.eval_func = eval_func
-        self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams])        
+        self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams])
 
     def upper_confidence_bound(self, optimiser, x):
         mu,std = optimiser.predict([x], return_std=True)
@@ -45,8 +46,14 @@ class BayesianOptimizer(Optimizer):
             #minimized = minimize(lambda x: -1 * optimiser.predict(x), start_vals, bounds=, method='L-BFGS-B')            
             minimized = minimize(lambda x: self.upper_confidence_bound(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
             #from nose.tools import set_trace; set_trace()
-            if minimized['success']:                
-                return {hp.name:v for hp,v in zip(self.hyperparams, minimized['x'])}
+            if minimized['success']:
+                new_params = {}
+                for hp,v in zip(self.hyperparams, minimized['x']):
+                    if hp.param_type == 'integer':
+                        new_params[hp.name] = int(round(v))
+                    else:
+                        new_params[hp.name] = v
+                return new_params                
         else:
             #assert False, 'Optimiser did not converge!'
             warnings.warn('Optimiser did not converge! Continuing with randomly sampled data...')
@@ -62,9 +69,15 @@ class BayesianOptimizer(Optimizer):
                 sampled_params[hp.name] = v
         return sampled_params
 
-    def fit(self, X_train, y_train, X_test, y_test, n_iters, start_vals=None):
+    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, start_vals=None):
         """
         """
+        if (X_test is None) and (y_test is None):
+            X_test = X_train
+            y_test = y_train
+        elif (X_test is None) or (y_test is None):
+            raise MissingValueException("Need to provide 'X_test' and 'y_test'")
+
         self.non_convergence_count = 0
         optimiser = gp.GaussianProcessRegressor(kernel=self.kernel,
                                                 alpha=1e-4,
