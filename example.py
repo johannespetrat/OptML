@@ -43,18 +43,39 @@ class NNModel(BaseEstimator):
                 'input_dim': self.input_dim, 
                 'train_epochs': self.epochs}
 
+class Parameter(object):
+    def __init__(self, name, param_type, lower, upper, distribution=None):
+        # continuous, categorical, binary, integer
+        param_type = param_type.lower()
+        if not param_type in ['categorical', 'continuous', 'integer', 'boolean']:
+            raise ValueError("param_type needs to be 'categorical','continuous','integer' or 'boolean'")
+        self.param_type = param_type.lower()
+        self.lower = lower
+        self.upper = upper
+        self.name = name
+        if distribution is not None:
+            self.distribution = distribution     
+
+
 if __name__ == "__main__":
     data, target = make_classification(n_samples=2000,
-                                       n_features=20,
+                                       n_features=45,
                                        n_informative=15,
                                        n_redundant=5,
-                                       class_sep=0.2)
+                                       class_sep=0.5)
 
     X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.33, random_state=42)
 
     rf = RandomForestClassifier(max_depth=3, n_estimators=10, min_samples_split=4)
     svm = SVC(C=1, kernel='rbf', degree=3)
     nn_model = NNModel(input_dim=data.shape[1], hidden_dim=10, train_epochs=100, batch_size=32)
+
+    rf_params = [Parameter(name='min_samples_split', param_type='integer', lower=2, upper=6),
+                 Parameter(name='min_weight_fraction_leaf', param_type='continuous', lower=0, upper=0.5)]
+    svm_params = [Parameter(name='C', param_type='continuous', lower=0.1, upper=5),
+                  Parameter(name='degree', param_type='integer', lower=1, upper=5)]
+    nn_params = [Parameter(name='hidden_dim', param_type='integer', lower=10, upper=200)]
+
 
     rf_hyperparams_grid = {'min_samples_split':[2,3,4,5,6], 'min_weight_fraction_leaf':[0,0.1,0.2,0.3,0.4,0.5]}
     svm_hyperparams_grid = {'C':[0.1,0.2,0.4,0.8,1,2,3,5], 'degree':[1,2,3,4,5]}
@@ -63,10 +84,10 @@ if __name__ == "__main__":
     def clf_score(y_true,y_pred):
         return np.sum(y_true==y_pred)/float(len(y_true))
 
-    rand_search = RandomSearchOptimizer(svm,
+    rand_search = RandomSearchOptimizer(model=svm,
                                         eval_func=clf_score,
-                                        hyperparams=svm_hyperparams_grid.keys(), 
-                                        hyperparams_grid=svm_hyperparams_grid)
+                                        hyperparams=svm_params,
+                                        grid_size=10)
 
     kernel = gp.kernels.Matern()
     n_restarts_optimizer = 10
@@ -74,7 +95,13 @@ if __name__ == "__main__":
     svm_bounds = {'C':[0.1,5],'degree':[1,5]}
     nn_bounds = {'hidden_dim':[2,200]}
 
-    bayesOpt = BayesianOptimizer(svm, ['C','degree'], kernel, n_restarts_optimizer, clf_score, svm_bounds)    
+    bayesOpt = BayesianOptimizer(model=svm, 
+                                 hyperparams=svm_params, 
+                                 kernel=kernel, 
+                                 n_restarts_optimizer=n_restarts_optimizer, 
+                                 eval_func=clf_score)
+    bayes_best_params, bayes_best_model = bayesOpt.fit(X_train, y_train, X_test, y_test, 10)
+
 
     n_init_samples = 4    
     #mutation_noise = {'hidden_dim': 5}
@@ -86,7 +113,7 @@ if __name__ == "__main__":
                                   'RouletteWheel', mutation_noise2)
 
     rand_best_params, rand_best_model = rand_search.fit(X_train, y_train, X_test, y_test, 50)
-    bayes_best_params, bayes_best_model = bayesOpt.fit(X_train, y_train, X_test, y_test, 10, [10])
+    bayes_best_params, bayes_best_model = bayesOpt.fit(X_train, y_train, X_test, y_test, 10)
     genetic_best_params1, genetic_best_model1 = geneticOpt1.fit(X_train, y_train, X_test, y_test, 50)
     genetic_best_params2, genetic_best_model2 = geneticOpt2.fit(X_train, y_train, X_test, y_test, 50)
 

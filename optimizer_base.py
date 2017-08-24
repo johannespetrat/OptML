@@ -27,3 +27,6 @@ class Optimizer(object):
         best_params = self.hyperparam_history[best_params_idx][1]        
         best_model = self.model.__class__(**dict(self.model.get_params(), **best_params))
         return best_params, best_model
+
+class MissingValueException(Exception):
+    pass

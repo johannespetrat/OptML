@@ -12,14 +12,14 @@ class BayesianOptimizer(Optimizer):
     """
     different objective functions taken from here https://arxiv.org/pdf/1206.2944.pdf
     """
-    def __init__(self, model, hyperparams, kernel, n_restarts_optimizer, eval_func, bounds):
+    def __init__(self, model, hyperparams, kernel, n_restarts_optimizer, eval_func):
         self.model = model
         self.hyperparams = hyperparams
         self.kernel = kernel
         self.n_restarts_optimizer = n_restarts_optimizer
         self.hyperparam_history = []
         self.eval_func = eval_func
-        self.bounds_arr = np.array([bounds[hp]for hp in self.hyperparams])
+        self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams])        
 
     def upper_confidence_bound(self, optimiser, x):
         mu,std = optimiser.predict([x], return_std=True)
@@ -46,14 +46,23 @@ class BayesianOptimizer(Optimizer):
             minimized = minimize(lambda x: self.upper_confidence_bound(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
             #from nose.tools import set_trace; set_trace()
             if minimized['success']:                
-                return {k:v for k,v in zip(self.hyperparams, minimized['x'])}
+                return {hp.name:v for hp,v in zip(self.hyperparams, minimized['x'])}
         else:
             #assert False, 'Optimiser did not converge!'
             warnings.warn('Optimiser did not converge! Continuing with randomly sampled data...')
             self.non_convergence_count += 1
-            return {k:v for k,v in zip(self.hyperparams, start_vals)}
+            return {hp.name:v for hp,v in zip(self.hyperparams, start_vals)}
 
-    def fit(self, X_train, y_train, X_test, y_test, n_iters, start_vals):
+    def _random_sample(self):
+        sampled_params = {}
+        for hp,v in zip(self.hyperparams, np.random.uniform(self.bounds_arr[:,0],self.bounds_arr[:,1])):
+            if hp.param_type == 'integer':
+                sampled_params[hp.name] = int(round(v))
+            else:
+                sampled_params[hp.name] = v
+        return sampled_params
+
+    def fit(self, X_train, y_train, X_test, y_test, n_iters, start_vals=None):
         """
         """
         self.non_convergence_count = 0
@@ -68,8 +77,7 @@ class BayesianOptimizer(Optimizer):
                 optimiser.fit(xs,ys) 
                 new_hyperparams = self.get_next_hyperparameters(optimiser)
             else:
-                new_hyperparams = {k:v for k,v in zip(self.hyperparams, 
-                                                      np.random.uniform(self.bounds_arr[:,0],self.bounds_arr[:,1]))}
+                new_hyperparams = self._random_sample()
 
             new_model = self.build_new_model(new_hyperparams)
 
