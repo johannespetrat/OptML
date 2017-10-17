@@ -5,7 +5,6 @@ import sklearn.gaussian_process as gp
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-import sklearn.gaussian_process as gp
 from optimizer_base import Optimizer, MissingValueException
 
 

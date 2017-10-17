@@ -64,11 +64,6 @@ if __name__ == "__main__":
                   Parameter(name='degree', param_type='integer', lower=1, upper=5)]
     nn_params = [Parameter(name='hidden_dim', param_type='integer', lower=10, upper=200)]
 
-
-    rf_hyperparams_grid = {'min_samples_split':[2,3,4,5,6], 'min_weight_fraction_leaf':[0,0.1,0.2,0.3,0.4,0.5]}
-    svm_hyperparams_grid = {'C':[0.1,0.2,0.4,0.8,1,2,3,5], 'degree':[1,2,3,4,5]}
-    nn_hyperparams_grid = {'hidden_dim':[10,20,30,40,50,60,70,80,90,100,120,140,160,180,200]}
-
     def clf_score(y_true,y_pred):
         return np.sum(y_true==y_pred)/float(len(y_true))
 

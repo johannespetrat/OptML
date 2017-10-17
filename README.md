@@ -8,7 +8,7 @@ Author: Johannes Petrat
 ## Features
 At the moment this library includes:
 * Random Search
-* A very simple Genetic Algorithm
+* A simple Genetic Algorithm
 * Bayesian Optimisation
 
 
