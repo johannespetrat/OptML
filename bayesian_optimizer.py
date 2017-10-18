@@ -13,11 +13,9 @@ class BayesianOptimizer(Optimizer):
     different objective functions taken from here https://arxiv.org/pdf/1206.2944.pdf
     """
     def __init__(self, model, hyperparams, eval_func, kernel=gp.kernels.Matern(), n_restarts_optimizer=10):
-        self.model = model
-        self.hyperparams = hyperparams
+        super(BayesianOptimizer, self).__init__(model, hyperparams, eval_func)
         self.kernel = kernel
         self.n_restarts_optimizer = n_restarts_optimizer
-        self.hyperparam_history = []
         self.eval_func = eval_func
         self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams])
 

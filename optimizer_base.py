@@ -13,7 +13,9 @@ class Optimizer(object):
         """
         self.model = model
         self.hyperparam_history = []
+        self.hyperparams = hyperparams
         self.eval_func = eval_func
+        self.param_dict = {p.name:p for p in hyperparams}
 
     @abc.abstractmethod
     def get_next_hyperparameters(self):
@@ -22,6 +24,9 @@ class Optimizer(object):
     @abc.abstractmethod
     def fit(self, X, y, params):
         raise NotImplementedError("This class needs a self.fit(X, y, params) function")
+
+    def getParamType(self, parameter_name):
+        return self.param_dict[parameter_name].param_type
 
     def build_new_model(self, new_hyperparams):
         """

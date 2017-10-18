@@ -1,13 +1,13 @@
 import numpy as np
 from optimizer_base import Optimizer, MissingValueException
-from model_converter import ModelConverter
+from models import Model
+#from model_converter import ModelConverter
+
 
 class RandomSearchOptimizer(Optimizer):
     def __init__(self, model, eval_func, hyperparams, grid_size):
-        self.model = ModelConverter(model).convert()
-        self.eval_func = eval_func
-        self.hyperparam_history = []
-        self.hyperparams = hyperparams
+        #self.model = ModelConverter(model).convert()
+        super(RandomSearchOptimizer, self).__init__(model, hyperparams, eval_func)
         self.hyperparams_grid = self.build_param_grid(grid_size) 
         self.model_module = model.__module__.split('.')[0]
 
@@ -49,7 +49,9 @@ class RandomSearchOptimizer(Optimizer):
             new_model = self.model.__class__(**new_hyperparams)
         elif self.model_module == 'statsmodels':
             new_model = self.model.__class__(**new_hyperparams)
-            new_model = ModelConverter(new_model).convert()
+            #new_model = ModelConverter(new_model).convert()
+        elif isinstance(self.model, Model):
+            new_model = self.model.__class__(**new_hyperparams)
         else:
             raise NotImplementedError("RandomSearchOptimizer not implemented for module '{}'".format(
                     self.model_module))
@@ -74,9 +76,13 @@ class RandomSearchOptimizer(Optimizer):
                 score = self.eval_func(y_test, new_model.predict(X_test))
             elif self.model_module == 'statsmodels':                
                 hyperparams.update({'endog': X_train})
-                new_model = self.build_new_model(hyperparams)                
+                new_model = self.build_new_model(hyperparams)
                 fitted_model = new_model.fit(X_train)                        
                 score = self.eval_func(y_test, fitted_model.predict())
+            elif isinstance(self.model, Model):
+                new_model = self.build_new_model(hyperparams)
+                new_model.fit(X_train, y_train)
+                score = self.eval_func(y_test, new_model.predict(X_test))
             else:
                 raise NotImplementedError("RandomSearchOptimizer not implemented for module '{}'".format(
                     self.model_module))
