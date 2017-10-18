@@ -6,7 +6,7 @@ The goal is to apply this to models built with Scikit-Learn, Statsmodels, Keras 
 Author: Johannes Petrat
 
 ## Install
-Simply clone this repo and run 'pip install -e .' inside this directory
+Simply clone this repo and run `pip install -e .` inside this directory
 
 ## Features
 At the moment this library includes:
