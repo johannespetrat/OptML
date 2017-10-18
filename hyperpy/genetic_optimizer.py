@@ -1,5 +1,5 @@
 import numpy as np
-from optimizer_base import Optimizer
+from hyperpy.optimizer_base import Optimizer
 
 class GeneticOptimizer(Optimizer):
     def __init__(self, model, hyperparams, eval_func, n_init_samples,

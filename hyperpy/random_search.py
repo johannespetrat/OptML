@@ -1,5 +1,5 @@
 import numpy as np
-from optimizer_base import Optimizer, MissingValueException
+from hyperpy.optimizer_base import Optimizer, MissingValueException
 from models import Model
 #from model_converter import ModelConverter
 
