@@ -1,5 +1,5 @@
 import numpy as np
-from mlopt.optimizer_base import Optimizer, MissingValueException
+from optml.optimizer_base import Optimizer, MissingValueException
 from models import Model
 #from model_converter import ModelConverter
 

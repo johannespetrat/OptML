@@ -11,11 +11,11 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 
-from hyperpy.random_search import RandomSearchOptimizer
-from hyperpy.bayesian_optimizer import BayesianOptimizer
-from hyperpy.genetic_optimizer import GeneticOptimizer
-from hyperpy.optimizer_base import Parameter
-from hyperpy.models import KerasModel
+from optml.random_search import RandomSearchOptimizer
+from optml.bayesian_optimizer import BayesianOptimizer
+from optml.genetic_optimizer import GeneticOptimizer
+from optml.optimizer_base import Parameter
+from optml.models import KerasModel
 
 class NNModel(KerasModel):
     def __init__(self, input_dim, hidden_dim, train_epochs=100, batch_size=32): 

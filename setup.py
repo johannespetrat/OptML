@@ -19,7 +19,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='mlopt',
+    name='optml',
 
     version='0.0.1dev1',
 
@@ -66,7 +66,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=['mlopt'],
+    packages=['optml'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:

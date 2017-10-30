@@ -5,7 +5,7 @@ import sklearn.gaussian_process as gp
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-from mlopt.optimizer_base import Optimizer, MissingValueException
+from optml.optimizer_base import Optimizer, MissingValueException
 
 
 class BayesianOptimizer(Optimizer):
