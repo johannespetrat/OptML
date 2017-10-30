@@ -1,7 +1,7 @@
 import numpy as np
 import warnings
 
-from hyperpy.optimizer_base import Optimizer
+from mlopt.optimizer_base import Optimizer
 
 
 class HyperoptOptimizer(Optimizer):

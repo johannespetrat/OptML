@@ -6,7 +6,11 @@ The goal is to apply this to models built with Scikit-Learn, Statsmodels, Keras 
 Author: Johannes Petrat
 
 ## Install
-Simply clone this repo and run `pip install -e .` inside this directory
+This package requires scikit-learn with version 0.19.0 or higher. If scikit-learn is not yet install run
+`pip install scikit-learn==0.19.0`.
+
+Afterwards install mlopt using `pip install mlopt` and you're ready to go.
+
 
 ## Features
 At the moment this library includes:
