@@ -27,7 +27,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/johannespetrat/HyperparameterOptimisation',
+    url='https://github.com/johannespetrat/OptML',
 
     # Author details
     author='Johannes Petrat',
