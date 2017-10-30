@@ -3,8 +3,6 @@ This package offers implementations of several black-box optimisation methods to
 
 OptML offers a unified interface for models built with Scikit-Learn, Keras, XGBoost (and hopefully soon Statsmodels).
 
-Author: Johannes Petrat
-
 ## Prerequisites
 This package requires scikit-learn with version 0.19.0 or higher. If scikit-learn is not yet install run
 ```pip install scikit-learn==0.19.0```
@@ -18,19 +16,19 @@ If scikit-learn is version 0.19 or higher simply install mlopt using `pip instal
 
 ## Usage
 Specify your ML model and the parameters you want to optimize over. For the parameters you have to choose the type (such as integer, categorical, boolean, etc.) and the range of values it can take.
-```
+```python
 model = SomeMLModel()
 params = [Parameter(name='param1', param_type='continuous', lower=0.1, upper=5),
           Parameter(name='param2', param_type='integer', lower=1, upper=5),
           Parameter(name='param3', param_type='categorical', possible_values=['val1','val2','val3'])]
 ```
 Then define the evaluation function. This can be anything from RMSE to crossentropy to custom functions. The first argument of the evaluation function is the array of true labels and the second argument is an array with model predictions.
-```
+```python
 def clf_score(y_true,y_pred):
     return np.sum(y_true==y_pred)/float(len(y_true))
 ```
 Import and initialize an optimizer and optimize the model for some training data.
-```
+```python
 from optml.bayesian_optimizer import BayesianOptimizer
 bayesOpt = BayesianOptimizer(model=model, 
                              hyperparams=params,                                  
