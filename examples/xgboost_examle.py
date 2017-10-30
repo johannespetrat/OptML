@@ -1,8 +1,8 @@
 import numpy as np
 
+import xgboost as xgb
+
 from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 import sklearn.gaussian_process as gp
 from sklearn.model_selection import train_test_split
 
@@ -24,17 +24,14 @@ data, target = make_classification(n_samples=100,
 X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.33, random_state=42)
 
 # define three different classifiers
-rf = RandomForestClassifier(max_depth=3, n_estimators=10, min_samples_split=4)
-svm = SVC(C=1, kernel='rbf', degree=3)
+model = xgb.XGBClassifier(max_depth=3, learning_rate=0.1, reg_lambda=1)
+
 
 # define the list of hyperparameters to tune for each classifier
-rf_params = [Parameter(name='min_samples_split', param_type='integer', lower=2, upper=6),
-             Parameter(name='min_weight_fraction_leaf', param_type='continuous', lower=0, upper=0.5)]
-svm_params = [Parameter(name='C', param_type='continuous', lower=0.1, upper=5),
-              Parameter(name='degree', param_type='integer', lower=1, upper=5)]
+params = [Parameter(name='max_depth', param_type='integer', lower=1, upper=4),
+          Parameter(name='learning_rate', param_type='continuous', lower=0.01, upper=0.5),
+          Parameter(name='reg_lambda', param_type='continuous', lower=0.1, upper=10)]
 
-model = svm
-params = svm_params
 # define the score function
 def clf_score(y_true,y_pred):
     return np.sum(y_true==y_pred)/float(len(y_true))
@@ -50,9 +47,8 @@ bayesOpt = BayesianOptimizer(model=model,
                              kernel=kernel,                                  
                              eval_func=clf_score)
 n_init_samples = 4    
-mutation_noise = {'C': 0.4, 'degree': 0.4, 
-                  'min_samples_split':0, 'min_weight_fraction_leaf':0,
-                  'hidden_dim': 1}
+mutation_noise = {'max_depth': 0.4, 'learning_rate': 0.05, 
+                  'reg_lambda':0.5}
 geneticOpt = GeneticOptimizer(model, params, clf_score, n_init_samples, 
                              'RouletteWheel', mutation_noise)
 

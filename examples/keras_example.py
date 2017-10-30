@@ -1,16 +1,40 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 import sklearn.gaussian_process as gp
 from sklearn.model_selection import train_test_split
+
+from keras.models import Sequential
+from keras.layers import Dense, Activation
 
 from optml.random_search import RandomSearchOptimizer
 from optml.bayesian_optimizer import BayesianOptimizer
 from optml.genetic_optimizer import GeneticOptimizer
 from optml.optimizer_base import Parameter
 from optml.models import KerasModel
+
+class NNModel(KerasModel):
+    def __init__(self, input_dim, hidden_dim, train_epochs=100, batch_size=32): 
+        self.epochs = train_epochs
+        self.batch_size = batch_size
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.model = Sequential()
+        self.model.add(Dense(units=int(hidden_dim), input_dim=input_dim))
+        self.model.add(Activation('relu'))
+        self.model.add(Dense(units=1))
+        self.model.add(Activation('sigmoid'))
+        self.model.compile(loss='binary_crossentropy',
+              optimizer='sgd',
+              metrics=['accuracy'])
+
+    def get_params(self, deep=False):
+        return {'batch_size': self.batch_size, 
+                'hidden_dim': self.hidden_dim, 
+                'input_dim': self.input_dim, 
+                'train_epochs': self.epochs}    
+
 
 # build some artificial data for classification
 data, target = make_classification(n_samples=100,
@@ -24,17 +48,10 @@ data, target = make_classification(n_samples=100,
 X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.33, random_state=42)
 
 # define three different classifiers
-rf = RandomForestClassifier(max_depth=3, n_estimators=10, min_samples_split=4)
-svm = SVC(C=1, kernel='rbf', degree=3)
+model = NNModel(input_dim=data.shape[1], hidden_dim=10, train_epochs=100, batch_size=32)
 
-# define the list of hyperparameters to tune for each classifier
-rf_params = [Parameter(name='min_samples_split', param_type='integer', lower=2, upper=6),
-             Parameter(name='min_weight_fraction_leaf', param_type='continuous', lower=0, upper=0.5)]
-svm_params = [Parameter(name='C', param_type='continuous', lower=0.1, upper=5),
-              Parameter(name='degree', param_type='integer', lower=1, upper=5)]
+params = [Parameter(name='hidden_dim', param_type='integer', lower=10, upper=200)]
 
-model = svm
-params = svm_params
 # define the score function
 def clf_score(y_true,y_pred):
     return np.sum(y_true==y_pred)/float(len(y_true))

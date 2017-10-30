@@ -45,7 +45,7 @@ class RandomSearchOptimizer(Optimizer):
         return new_hyperparams
 
     def build_new_model(self, new_hyperparams):
-        if self.model_module == 'sklearn':
+        if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
             new_model = self.model.__class__(**new_hyperparams)
         elif self.model_module == 'statsmodels':
             new_model = self.model.__class__(**new_hyperparams)
@@ -70,7 +70,7 @@ class RandomSearchOptimizer(Optimizer):
         for i in range(n_iters):
             new_hyperparams = self.get_next_hyperparameters()
             hyperparams.update(new_hyperparams)            
-            if self.model_module == 'sklearn': 
+            if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'): 
                 new_model = self.build_new_model(hyperparams)
                 new_model.fit(X_train, y_train)
                 score = self.eval_func(y_test, new_model.predict(X_test))

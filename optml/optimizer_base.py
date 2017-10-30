@@ -29,15 +29,17 @@ class Optimizer(object):
         return self.param_dict[parameter_name].param_type
 
     def build_new_model(self, new_hyperparams):
-        """
-        builds a model given a dictionary of parameters. Note that if parameters are not specified
-        the model assumes that previous values remain unchanged.
-        Keyword arguments:
-            new_hyperparams - a dictionary with parameters and their updated values
-        """
-        hyperparams = self.model.get_params()
-        hyperparams.update(new_hyperparams)
-        new_model = self.model.__class__(**hyperparams)
+        if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
+            new_model = self.model.__class__(**new_hyperparams)
+        elif self.model_module == 'statsmodels':
+            raise NotImplementedError("Not yet implemented for 'statsmodels'")
+            #new_model = self.model.__class__(**new_hyperparams)
+            #new_model = ModelConverter(new_model).convert()
+        elif isinstance(self.model, Model):
+            new_model = self.model.__class__(**new_hyperparams)
+        else:
+            raise NotImplementedError("RandomSearchOptimizer not implemented for module '{}'".format(
+                    self.model_module))
         return new_model
 
     def get_best_params_and_model(self):
