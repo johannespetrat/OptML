@@ -5,7 +5,7 @@ OptML offers a unified interface for models built with Scikit-Learn, Keras, XGBo
 
 ## Prerequisites
 This package requires scikit-learn with version 0.19.0 or higher. If scikit-learn is not yet install run
-```pip install scikit-learn==0.19.0```
+```pip install scikit-learn==0.19.0```. If you want to make use of the ```HyperoptOptimizer``` then you also need to install [hyperopt](https://github.com/hyperopt/hyperopt) (e.g. by ```pip install hyperopt```).
 
 In order to run with Keras and XGBoost models these libraries have to be install as well, of course.
 
