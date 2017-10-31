@@ -41,13 +41,13 @@ At the moment this library includes:
 * Random Search
 * A simple Genetic Algorithm
 * Bayesian Optimisation
+* Hyperopt (using [hyperopt](https://github.com/hyperopt/hyperopt))
 
 
 ## TODOs
 1. algorithms:
-* Hyperopt
 * more options for genetic algorithms
-* grid search
+* parallel grid search
 * meta heuristics/swarm optimisation (Ant Colony Optimization etc.)
 2. functionality
 * cross-validation for scoring; atm only optimises over training scores -> over-fitting
