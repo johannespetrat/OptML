@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 
 from optml.random_search import RandomSearchOptimizer
 from optml.bayesian_optimizer import BayesianOptimizer
+from optml.hyperopt_optimizer import HyperoptOptimizer
 from optml.genetic_optimizer import GeneticOptimizer
 from optml.optimizer_base import Parameter
 from optml.models import KerasModel
@@ -36,6 +37,7 @@ params = [Parameter(name='max_depth', param_type='integer', lower=1, upper=4),
 def clf_score(y_true,y_pred):
     return np.sum(y_true==y_pred)/float(len(y_true))
 
+
 rand_search = RandomSearchOptimizer(model=model,
                                     eval_func=clf_score,
                                     hyperparams=params,
@@ -46,6 +48,11 @@ bayesOpt = BayesianOptimizer(model=model,
                              hyperparams=params, 
                              kernel=kernel,                                  
                              eval_func=clf_score)
+
+hyperOpt = HyperoptOptimizer(model=model, 
+                             hyperparams=params,                              
+                             eval_func=clf_score)
+
 n_init_samples = 4    
 mutation_noise = {'max_depth': 0.4, 'learning_rate': 0.05, 
                   'reg_lambda':0.5}
@@ -56,6 +63,7 @@ geneticOpt = GeneticOptimizer(model, params, clf_score, n_init_samples,
 # of hyperparameters on validation data 
 rand_best_params, rand_best_model = rand_search.fit(X_train=X_train, y_train=y_train, n_iters=50)
 bayes_best_params, bayes_best_model = bayesOpt.fit(X_train=X_train, y_train=y_train, n_iters=50)
+hyperopt_best_params, hyperopt_best_model = hyperOpt.fit(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 genetic_best_params, genetic_best_model = geneticOpt.fit(X_train=X_train, y_train=y_train, n_iters=50, n_tries=20)
 
 rand_best_model.fit(X_test, y_test)
@@ -63,6 +71,9 @@ print("Random Search on test data: {}".format(clf_score(y_test, rand_best_model.
 
 bayes_best_model.fit(X_test, y_test)
 print("Bayesian Optimisation on test data: {}".format(clf_score(y_test, bayes_best_model.predict(X_test))))
+
+hyperopt_best_model.fit(X_test, y_test)
+print("Hyperopt Algo on test data: {}".format(clf_score(y_test, hyperopt_best_model.predict(X_test))))
 
 genetic_best_model.fit(X_test, y_test)
 print("Genetic Algo on test data: {}".format(clf_score(y_test, genetic_best_model.predict(X_test))))

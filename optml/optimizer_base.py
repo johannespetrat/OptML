@@ -16,6 +16,7 @@ class Optimizer(object):
         self.hyperparams = hyperparams
         self.eval_func = eval_func
         self.param_dict = {p.name:p for p in hyperparams}
+        self.model_module = model.__module__.split('.')[0]
 
     @abc.abstractmethod
     def get_next_hyperparameters(self):

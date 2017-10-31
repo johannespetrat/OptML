@@ -69,7 +69,7 @@ class RandomSearchOptimizer(Optimizer):
         # and update them with the new hyperparameters
         for i in range(n_iters):
             new_hyperparams = self.get_next_hyperparameters()
-            hyperparams.update(new_hyperparams)            
+            hyperparams.update(new_hyperparams)
             if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'): 
                 new_model = self.build_new_model(hyperparams)
                 new_model.fit(X_train, y_train)
