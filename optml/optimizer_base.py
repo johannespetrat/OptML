@@ -1,5 +1,6 @@
 import numpy as np
 import abc
+from sklearn.pipeline import Pipeline
 
 class Optimizer(object):
 
@@ -31,7 +32,10 @@ class Optimizer(object):
 
     def build_new_model(self, new_hyperparams):
         if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
-            new_model = self.model.__class__(**new_hyperparams)
+            if isinstance(self.model, Pipeline):
+                new_model = self.model.set_params(**new_hyperparams)
+            else:
+                new_model = self.model.__class__(**new_hyperparams)
         elif self.model_module == 'statsmodels':
             raise NotImplementedError("Not yet implemented for 'statsmodels'")
             #new_model = self.model.__class__(**new_hyperparams)
@@ -50,8 +54,13 @@ class Optimizer(object):
             None
         """
         best_params_idx = np.argmax([score for score, params in self.hyperparam_history])
-        best_params = self.hyperparam_history[best_params_idx][1]        
-        best_model = self.model.__class__(**dict(self.model.get_params(), **best_params))
+        best_params = self.hyperparam_history[best_params_idx][1]
+        if isinstance(self.model, Pipeline):
+            all_params = self.model.get_params()
+            all_params.update(best_params)
+            best_model = self.model.set_params(**all_params)
+        else:
+            best_model = self.model.__class__(**dict(self.model.get_params(), **best_params))
         return best_params, best_model
 
 class MissingValueException(Exception):

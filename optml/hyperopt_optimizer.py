@@ -49,20 +49,20 @@ class HyperoptOptimizer(Optimizer):
             self.model.fit(X_train, y_train)
             y_pred = self.model.predict(X_test)
             y_true = y_test
-            score = self.eval_func(y_true, y_pred)
+            score = -self.eval_func(y_true, y_pred)
             return score
         
         self.trials = Trials()
         best_params = fmin(objective,
                     self.param_space,
                     algo=tpe.suggest,
-                    max_evals=10,
+                    max_evals=n_iters,
                     trials=self.trials)
 
         self.hyperparam_history = []
         for i, loss in enumerate(self.trials.losses()):
             param_vals = {k:v[i] for k,v in self.trials.vals.items()}
-            self.hyperparam_history.append((loss, param_vals))
+            self.hyperparam_history.append((-loss, param_vals))
 
         model_params = self.model.get_params()
         model_params.update(best_params)

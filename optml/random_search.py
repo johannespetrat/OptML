@@ -44,19 +44,6 @@ class RandomSearchOptimizer(Optimizer):
             new_hyperparams[hp.name] = hp.random_sample()                    
         return new_hyperparams
 
-    def build_new_model(self, new_hyperparams):
-        if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
-            new_model = self.model.__class__(**new_hyperparams)
-        elif self.model_module == 'statsmodels':
-            new_model = self.model.__class__(**new_hyperparams)
-            #new_model = ModelConverter(new_model).convert()
-        elif isinstance(self.model, Model):
-            new_model = self.model.__class__(**new_hyperparams)
-        else:
-            raise NotImplementedError("RandomSearchOptimizer not implemented for module '{}'".format(
-                    self.model_module))
-        return new_model
-
     def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10):
         # get the hyperparameters of the base model
         if (X_test is None) and (y_test is None):
@@ -89,8 +76,9 @@ class RandomSearchOptimizer(Optimizer):
             self.hyperparam_history.append((score, new_hyperparams))
         best_params_idx = np.argmax([score for score, params in self.hyperparam_history])
 
-        best_params = self.hyperparam_history[best_params_idx][1]        
-        best_model = self.model.__class__(**dict(self.model.get_params(), **best_params))
+        #best_params = self.hyperparam_history[best_params_idx][1]        
+        #best_model = self.model.__class__(**dict(self.model.get_params(), **best_params))
+        best_params, best_model = self.get_best_params_and_model()
         return best_params, best_model
 
 

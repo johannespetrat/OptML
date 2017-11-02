@@ -11,7 +11,7 @@ from keras.layers import Dense, Activation
 from optml.random_search import RandomSearchOptimizer
 from optml.bayesian_optimizer import BayesianOptimizer
 from optml.genetic_optimizer import GeneticOptimizer
-from optml.optimizer_base import Parameter
+from optml import Parameter
 from optml.models import KerasModel
 
 class NNModel(KerasModel):
