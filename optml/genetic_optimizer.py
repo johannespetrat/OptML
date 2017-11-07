@@ -14,6 +14,9 @@ class GeneticOptimizer(Optimizer):
     def get_next_hyperparameters(self):
         pass
 
+    def getParamType(self, parameter_name):
+        return self.param_dict[parameter_name].param_type
+
     def _random_sample(self):
         sampled_params = {}
         for hp in self.hyperparams:

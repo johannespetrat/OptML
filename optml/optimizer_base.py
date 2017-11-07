@@ -18,8 +18,8 @@ class Optimizer(object):
         self.hyperparams = hyperparams
         self.eval_func = eval_func
         self.model_module = self.infer_model_type(model)
-
-
+        self.param_dict = {p.name:p for p in hyperparams}
+        
     def infer_model_type(self, model):
         if 'xgboost' in model.__module__.lower():
             return 'xgboost'
