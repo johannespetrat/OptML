@@ -98,6 +98,10 @@ class Parameter(object):
             raise MissingValueException("Need to provide possible values for categorical parameters.")
         self.possible_values = possible_values
         self.param_type = param_type.lower()
+        if (param_type in ['continuous', 'integer', 'int_array', 'continuous_array']) and (
+            (lower is None) or (upper is None)):
+            raise MissingValueException("Need to provide 'lower' and 'upper' for parameters of type.".format(
+                param_type))
         self.lower = lower
         self.upper = upper
         self.name = name
@@ -123,7 +127,7 @@ class Parameter(object):
         elif self.param_type == 'boolean':
             return np.random.choice([True, False])
         elif self.param_type == 'continuous_array':
-            return [np.random.uniform(self.lower[i],self.upper[i])[0] for i in range(len(self.lower))]
+            return [np.random.uniform(self.lower[i],self.upper[i]) for i in range(len(self.lower))]
         elif self.param_type == 'int_array':
             return [np.random.choice(np.arange(self.lower[i],self.upper[i]),1)[0] for i in range(len(self.lower))]
 
