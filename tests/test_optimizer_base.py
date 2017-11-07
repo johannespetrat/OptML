@@ -1,3 +1,4 @@
+import numpy as np
 import unittest
 from optml.optimizer_base import Optimizer, MissingValueException
 from optml import Parameter
@@ -47,7 +48,6 @@ class TestBaseOptimizer(unittest.TestCase):
         self.assertEqual(pipeline_opt.model_module, 'pipeline')
         self.assertEqual(xgb_opt.model_module, 'xgboost')
         self.assertEqual(nn_opt.model_module, 'keras')
-
 
     def test_build_new_model_sklearn(self):
         sklearn_model = LogisticRegression(C=1)
@@ -110,17 +110,18 @@ class TestParameter(unittest.TestCase):
             Parameter('test_integer', 'integer')
 
     def test_boolean(self):
-        p = Parameter('test_bool', 'bool')
+        p = Parameter('test_bool', 'boolean')
         s = p.random_sample()
-        self.assertTrue(isinstance(s, bool))
+        self.assertTrue(isinstance(s, np.bool_))
 
     def test_int_array(self):
         lower = [0,10,20]
         upper = [5,15,25]
         p = Parameter('test_int_array', 'int_array', lower=lower, upper=upper)
-        s = p.random_sample()
-        for i,v in enumerate(s):
-            self.assertTrue(v in range(lower[i],upper[i]))
+        for _ in range(100):
+            s = p.random_sample()
+            for i,v in enumerate(s):
+                self.assertTrue(v in range(lower[i],upper[i]))
 
         with self.assertRaises(ValueError):
             Parameter('test_int_array', 'int_array',lower=[1,2],upper=[3,4,5])
@@ -132,11 +133,11 @@ class TestParameter(unittest.TestCase):
         lower = [0,10,20]
         upper = [5,15,25]
         p = Parameter('test_continuous_array', 'continuous_array', lower=lower, upper=upper)
-        s = p.random_sample()
-
-        for i,v in enumerate(s):
-            self.assertTrue(v>=lower[i])
-            self.assertTrue(v<=upper[i])
+        for _ in range(100):
+            s = p.random_sample()
+            for i,v in enumerate(s):
+                self.assertTrue(v>=lower[i])
+                self.assertTrue(v<=upper[i])
 
         with self.assertRaises(ValueError):
             Parameter('test_continuous_array', 'continuous_array',lower=[1,2],upper=[3,4,5])
