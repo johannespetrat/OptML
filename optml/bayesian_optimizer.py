@@ -10,14 +10,17 @@ from optml.optimizer_base import Optimizer, MissingValueException
 
 class BayesianOptimizer(Optimizer):
     """
-    different objective functions taken from here https://arxiv.org/pdf/1206.2944.pdf
+    Bayesian Optimizer as described here: https://arxiv.org/pdf/1206.2944.pdf
     """
-    def __init__(self, model, hyperparams, eval_func, kernel=gp.kernels.Matern(), n_restarts_optimizer=10):
+    def __init__(self, model, hyperparams, eval_func, method='expected_improvement',
+                 kernel=gp.kernels.Matern(), n_restarts_optimizer=10):
         super(BayesianOptimizer, self).__init__(model, hyperparams, eval_func)
         self.kernel = kernel
         self.n_restarts_optimizer = n_restarts_optimizer
         self.eval_func = eval_func
         self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams])
+        self.success = None
+        self.method = method
 
     def upper_confidence_bound(self, optimiser, x):
         mu,std = optimiser.predict([x], return_std=True)
@@ -40,9 +43,15 @@ class BayesianOptimizer(Optimizer):
         best_params = {}
         for i in range(self.n_restarts_optimizer):
             start_vals = np.random.uniform(np.array(self.bounds_arr)[:,0], np.array(self.bounds_arr)[:,1])
-            #minimized = minimize(lambda x: -1 * optimiser.predict(x), start_vals, bounds=, method='L-BFGS-B')            
-            minimized = minimize(lambda x: self.upper_confidence_bound(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
-            #from nose.tools import set_trace; set_trace()
+            #minimized = minimize(lambda x: -1 * optimiser.predict(x), start_vals, bounds=, method='L-BFGS-B')
+            if self.method == 'expected_improvement':
+                minimized = minimize(lambda x: self.expected_improvement(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+            elif self.method == 'upper_confidence_bound':
+                minimized = minimize(lambda x: self.upper_confidence_bound(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+            elif self.method == 'probability_of_improvement':
+                minimized = minimize(lambda x: self.probability_of_improvement(optimiser, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+
+            self.success = minimized['success']
             if minimized['success']:
                 new_params = {}
                 for hp,v in zip(self.hyperparams, minimized['x']):
@@ -52,6 +61,7 @@ class BayesianOptimizer(Optimizer):
                         new_params[hp.name] = v
                 return new_params                
         else:
+            self.success = False
             #assert False, 'Optimiser did not converge!'
             warnings.warn('Optimiser did not converge! Continuing with randomly sampled data...')
             self.non_convergence_count += 1
