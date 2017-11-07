@@ -5,41 +5,11 @@ from models import Model
 
 
 class RandomSearchOptimizer(Optimizer):
-    def __init__(self, model, eval_func, hyperparams, grid_size):
-        #self.model = ModelConverter(model).convert()
+    def __init__(self, model, hyperparams, eval_func):
         super(RandomSearchOptimizer, self).__init__(model, hyperparams, eval_func)
-        self.hyperparams_grid = self.build_param_grid(grid_size) 
-        self.model_module = model.__module__.split('.')[0]
-
-    def build_param_grid(self, grid_size):
-        grid = {}
-        for h in self.hyperparams:
-            if h.param_type == 'integer':
-                stepsize = int(round((h.upper - h.lower)/float(grid_size)))
-                if stepsize == 0:
-                    stepsize = 1
-                param_range = np.arange(h.lower, h.upper, stepsize)                
-            elif h.param_type == 'continuous':                
-                param_range = np.linspace(h.lower, h.upper, grid_size)
-            elif h.param_type == 'categorical': 
-                try:
-                    param_range = np.choice(h.possible_values)
-                except KeyError:
-                    raise MissingValueException("Need to provide possible values for the parameter '{}'".format(h.name))
-            elif h.param_type == 'boolean':
-                param_range = [True, False]
-            elif h.param_type == 'continuous_array':
-                param_range = np.array([np.linspace(h.lower[idx], h.upper[idx], grid_size) for idx in range(len(h.lower))])
-            elif h.param_type == 'int_array':
-                param_range = np.array([np.arange(h.lower[idx], h.upper[idx], 1) for idx in range(len(h.lower))])
-            else:
-                raise ValueError("param_type needs to be 'categorical','continuous','integer', 'int_array', 'continuous_array' or 'boolean'")
-            grid[h.name] = param_range
-        return grid
 
     def get_next_hyperparameters(self):
         new_hyperparams = {}
-        #for key, val_range in self.hyperparams_grid.items():
         for hp in self.hyperparams:            
             new_hyperparams[hp.name] = hp.random_sample()                    
         return new_hyperparams
@@ -57,22 +27,12 @@ class RandomSearchOptimizer(Optimizer):
         for i in range(n_iters):
             new_hyperparams = self.get_next_hyperparameters()
             hyperparams.update(new_hyperparams)
-            if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'): 
-                new_model = self.build_new_model(hyperparams)
-                new_model.fit(X_train, y_train)
-                score = self.eval_func(y_test, new_model.predict(X_test))
-            elif self.model_module == 'statsmodels':                
+            if self.model_module == 'statsmodels':                
                 hyperparams.update({'endog': X_train})
-                new_model = self.build_new_model(hyperparams)
-                fitted_model = new_model.fit(X_train)                        
-                score = self.eval_func(y_test, fitted_model.predict())
-            elif isinstance(self.model, Model):
-                new_model = self.build_new_model(hyperparams)
-                new_model.fit(X_train, y_train)
-                score = self.eval_func(y_test, new_model.predict(X_test))
-            else:
-                raise NotImplementedError("RandomSearchOptimizer not implemented for module '{}'".format(
-                    self.model_module))
+
+            new_model = self.build_new_model(hyperparams)
+            fitted_model = new_model.fit(X_train, y_train)                        
+            score = self.eval_func(y_test, fitted_model.predict(X_train))
             self.hyperparam_history.append((score, new_hyperparams))
         best_params_idx = np.argmax([score for score, params in self.hyperparam_history])
 

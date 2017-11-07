@@ -17,7 +17,6 @@ class Optimizer(object):
         self.hyperparam_history = []
         self.hyperparams = hyperparams
         self.eval_func = eval_func
-        self.param_dict = {p.name:p for p in hyperparams}
         self.model_module = self.infer_model_type(model)
 
 
@@ -41,9 +40,6 @@ class Optimizer(object):
     @abc.abstractmethod
     def fit(self, X, y, params):
         raise NotImplementedError("This class needs a self.fit(X, y, params) function")
-
-    def getParamType(self, parameter_name):
-        return self.param_dict[parameter_name].param_type
 
     def build_new_model(self, new_hyperparams):
         if self.model_module == 'pipeline':
