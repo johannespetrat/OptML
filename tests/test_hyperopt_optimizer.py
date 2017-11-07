@@ -23,10 +23,10 @@ class TestHyperoptOptimizer(unittest.TestCase):
         param_space = hyperopt.param_space
 
         with self.assertRaises(ValueError):
-        	hyperopt = HyperoptOptimizer(model, [p1,p2,p3,p4,p5],lambda x: x)        
+            hyperopt = HyperoptOptimizer(model, [p1,p2,p3,p4,p5],lambda x: x)        
 
     def test_improvement(self):
-        np.random.seed(5)
+        np.random.seed(4)
         data, target = make_classification(n_samples=100,
                                    n_features=45,
                                    n_informative=15,
@@ -45,4 +45,4 @@ class TestHyperoptOptimizer(unittest.TestCase):
         self.assertTrue(final_score>start_score)
 
         for status in hyperopt.trials.statuses():
-        	self.assertEqual(status, 'ok')
+            self.assertEqual(status, 'ok')
