@@ -24,6 +24,7 @@ class TestBayesianOptimizer(unittest.TestCase):
         self.assertTrue(bayesOpt.bounds_arr[1][1]>=interval2[1])
 
     def test_expected_improvement_tractable(self):
+        np.random.seed(5)
         data, target = make_classification(n_samples=100,
                                    n_features=45,
                                    n_informative=15,
@@ -44,6 +45,7 @@ class TestBayesianOptimizer(unittest.TestCase):
 
 
     def test_probability_of_improvement_tractable(self):
+        np.random.seed(5)
         data, target = make_classification(n_samples=100,
                                    n_features=45,
                                    n_informative=15,
@@ -63,6 +65,7 @@ class TestBayesianOptimizer(unittest.TestCase):
         self.assertTrue(final_score>start_score)
 
     def test_upper_confidence_bound_tractable(self):
+        np.random.seed(5)
         data, target = make_classification(n_samples=100,
                                    n_features=45,
                                    n_informative=15,

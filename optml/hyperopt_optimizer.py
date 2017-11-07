@@ -10,8 +10,7 @@ from optml.optimizer_base import Optimizer, MissingValueException
 
 
 class HyperoptOptimizer(Optimizer):
-    """
-    different objective functions taken from here https://arxiv.org/pdf/1206.2944.pdf
+    """    
     """
     def __init__(self, model, hyperparams, eval_func):
         super(HyperoptOptimizer, self).__init__(model, hyperparams, eval_func)
@@ -25,11 +24,13 @@ class HyperoptOptimizer(Optimizer):
             if param.param_type == 'integer':
                 param_space[param.name] = param.lower + hp.randint(param.name, param.upper-param.lower)
             elif param.param_type == 'categorical':
-                param_space[param.name] = hp.choice(param.name, possible_values)
+                param_space[param.name] = hp.choice(param.name, param.possible_values)
             elif param.param_type == 'boolean':
                 param_space[param.name] = hp.choice(param.name, [True, False])
             elif param.param_type == 'continuous':
                 param_space[param.name] = hp.uniform(param.name, param.lower, param.upper)
+            else:
+                raise ValueError("HyperOpt only takes parameters of type 'integer', 'categorical', 'boolean' and 'continuous'")
         return param_space
 
 
