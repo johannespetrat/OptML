@@ -9,6 +9,7 @@ class Model(BaseEstimator):
         raise NotImplementedError("You need to implement the 'get_params' function for this model!")
 
 class KerasModel(Model):
+    __model_module__ = 'keras'
     def __init__(self):
         raise NotImplementedError("You need to implement the initialisation function for this model! " + 
                                   "It should at least specify 'batch_size' and the number of epochs.")

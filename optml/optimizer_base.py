@@ -1,6 +1,7 @@
 import numpy as np
 import abc
 from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
 
 class Optimizer(object):
 
@@ -16,8 +17,21 @@ class Optimizer(object):
         self.hyperparam_history = []
         self.hyperparams = hyperparams
         self.eval_func = eval_func
+        self.model_module = self.infer_model_type(model)
         self.param_dict = {p.name:p for p in hyperparams}
-        self.model_module = model.__module__.split('.')[0]
+        
+    def infer_model_type(self, model):
+        if 'xgboost' in model.__module__.lower():
+            return 'xgboost'
+        elif 'pipeline' in model.__module__.lower():
+            return 'pipeline'
+        elif 'sklearn' in model.__module__.lower():
+            return 'sklearn'
+        elif (hasattr(model, '__model_module__')) and ('keras' in model.__model_module__.lower()):
+            return 'keras'
+        else:
+            raise NotImplementedError("{} not implemented for module '{}'".format(
+                    str(type(self))[:-2].split('.')[-1], model.__module__))
 
     @abc.abstractmethod
     def get_next_hyperparameters(self):
@@ -27,24 +41,20 @@ class Optimizer(object):
     def fit(self, X, y, params):
         raise NotImplementedError("This class needs a self.fit(X, y, params) function")
 
-    def getParamType(self, parameter_name):
-        return self.param_dict[parameter_name].param_type
-
     def build_new_model(self, new_hyperparams):
-        if (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
-            if isinstance(self.model, Pipeline):
+        if self.model_module == 'pipeline':
                 new_model = self.model.set_params(**new_hyperparams)
-            else:
-                new_model = self.model.__class__(**new_hyperparams)
+        elif (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
+            new_model = self.model.__class__(**new_hyperparams)
         elif self.model_module == 'statsmodels':
             raise NotImplementedError("Not yet implemented for 'statsmodels'")
             #new_model = self.model.__class__(**new_hyperparams)
             #new_model = ModelConverter(new_model).convert()
-        elif isinstance(self.model, Model):
+        elif self.model_module == 'keras':
             new_model = self.model.__class__(**new_hyperparams)
         else:
-            raise NotImplementedError("RandomSearchOptimizer not implemented for module '{}'".format(
-                    self.model_module))
+            raise NotImplementedError("{} not implemented for module '{}'".format(
+                    str(type(self))[:-2].split('.')[-1], self.model_module))
         return new_model
 
     def get_best_params_and_model(self):
@@ -84,6 +94,10 @@ class Parameter(object):
             raise MissingValueException("Need to provide possible values for categorical parameters.")
         self.possible_values = possible_values
         self.param_type = param_type.lower()
+        if (param_type in ['continuous', 'integer', 'int_array', 'continuous_array']) and (
+            (lower is None) or (upper is None)):
+            raise MissingValueException("Need to provide 'lower' and 'upper' for parameters of type.".format(
+                param_type))
         self.lower = lower
         self.upper = upper
         self.name = name
@@ -109,7 +123,7 @@ class Parameter(object):
         elif self.param_type == 'boolean':
             return np.random.choice([True, False])
         elif self.param_type == 'continuous_array':
-            return [np.random.uniform(self.lower[i],self.upper[i])[0] for i in range(len(self.lower))]
+            return [np.random.uniform(self.lower[i],self.upper[i]) for i in range(len(self.lower))]
         elif self.param_type == 'int_array':
             return [np.random.choice(np.arange(self.lower[i],self.upper[i]),1)[0] for i in range(len(self.lower))]
 

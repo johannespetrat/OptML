@@ -86,4 +86,6 @@ setup(
         'dev': ['check-manifest'],
         'test': ['coverage'],
     },
+    test_suite='nose.collector',
+    tests_require=['nose'],
 )
