@@ -15,9 +15,9 @@ coverage:
     changes: false
 
   ignore:
-    tests/*
-    setup.py
-    examples/*
+    - "setup.py"
+    - "examples/*"
+    - "tests/*"
 
 comment:
   layout: "header, diff"
