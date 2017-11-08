@@ -1,5 +1,4 @@
-# OptML
-[![Test Coverage](https://api.codeclimate.com/v1/badges/db739d2545f6e7374fb3/test_coverage)](https://codeclimate.com/github/johannespetrat/OptML/test_coverage)
+# OptML [![Test Coverage](https://api.codeclimate.com/v1/badges/db739d2545f6e7374fb3/test_coverage)](https://codeclimate.com/github/johannespetrat/OptML/test_coverage)
 This package offers implementations of several black-box optimisation methods to tune hyperparameters of machine learning models. Its purpose is to enable data scientists to use optimization techniques for rapid protyping. Simply import OptML and supply it with a model and the parameters to optimize.
 
 OptML offers a unified interface for models built with Scikit-Learn, Keras, XGBoost (and hopefully soon Statsmodels).
