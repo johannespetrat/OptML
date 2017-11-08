@@ -1,2 +1,0 @@
-class GridSearchOptimizer(Optimizer):    
-    pass
