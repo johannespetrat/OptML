@@ -40,6 +40,7 @@ bayes_best_params, bayes_best_model = bayesOpt.fit(X_train=X_train, y_train=y_tr
 ## Features
 At the moment this library includes:
 * Random Search
+* Parallelized Gridsearch
 * A simple Genetic Algorithm
 * Bayesian Optimisation
 * Hyperopt (using [hyperopt](https://github.com/hyperopt/hyperopt))
@@ -48,16 +49,11 @@ At the moment this library includes:
 ## TODOs
 1. algorithms:
 * more options for genetic algorithms
-* parallel grid search
 * meta heuristics/swarm optimisation (Ant Colony Optimization etc.)
 2. functionality
-* cross-validation for scoring; atm only optimises over training scores -> over-fitting
 * early stopping if there is no significant improvement after x iterations
-* parallelization??
-* automatic detection if Keras, Scikit-learn, XGBoost or statsmodels
 3. usability
 * add categorical parameters
-* unified APIs
 * better documenation
 
 ## Author
