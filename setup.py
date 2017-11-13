@@ -21,7 +21,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='optml',
 
-    version='0.0.5dev1',
+    version='0.1.0',
 
     description='A library for hyperparameter optimization of ML models',
     long_description=long_description,
