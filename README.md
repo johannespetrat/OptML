@@ -4,14 +4,14 @@ This package offers implementations of several black-box optimisation methods to
 OptML offers a unified interface for models built with Scikit-Learn, Keras, XGBoost (and hopefully soon Statsmodels).
 
 ## Prerequisites
-This package requires scikit-learn with version 0.19.0 or higher. If scikit-learn is not yet install run
+This package requires scikit-learn with version 0.19.0 or higher. If Scikit-Learn is not yet installed run
 ```pip install scikit-learn==0.19.0```. If you want to make use of the ```HyperoptOptimizer``` then you also need to install [hyperopt](https://github.com/hyperopt/hyperopt) (e.g. by ```pip install hyperopt```).
 
-In order to run with Keras and XGBoost models these libraries have to be install as well, of course.
+In order to run with [Keras](https://github.com/fchollet/keras) and [XGBoost](https://github.com/dmlc/xgboost) models these libraries have to be install as well, of course.
 
 ## Installation
 
-If scikit-learn is version 0.19 or higher simply install mlopt using `pip install optml` and you're ready to go.
+If Scikit-Learn is version 0.19 or higher simply install mlopt using `pip install optml` and you're ready to go.
 
 
 ## Usage
@@ -57,7 +57,7 @@ At the moment this library includes:
 
 ## Author
 
-* **Johannes Petrat** - *Initial work* - [johannespetrat](https://github.com/johannespetrat)
+* **Johannes Petrat** - *Initial Release* - [johannespetrat](https://github.com/johannespetrat)
 
 ## License
 
