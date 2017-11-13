@@ -8,7 +8,7 @@ from sklearn.datasets import make_classification
 def clf_score(y_true,y_pred):
     return np.sum(y_true==y_pred)/float(len(y_true))
 
-class TestHyperoptOptimizer(unittest.TestCase):
+class TestRandomSearchOptimizer(unittest.TestCase):
     def test_improvement(self):
         np.random.seed(4)
         data, target = make_classification(n_samples=100,
