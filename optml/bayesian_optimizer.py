@@ -92,7 +92,7 @@ class BayesianOptimizer(Optimizer):
                                                 normalize_y=True)
         for i in range(n_iters):            
             if i>0:                
-                xs = np.array([params.values() for score, params in self.hyperparam_history])
+                xs = np.array([list(params.values()) for score, params in self.hyperparam_history])
                 ys = np.array([score for score, params in self.hyperparam_history])
                 optimiser.fit(xs,ys) 
                 new_hyperparams = self.get_next_hyperparameters(optimiser)
