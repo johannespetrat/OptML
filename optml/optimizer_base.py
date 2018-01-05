@@ -4,15 +4,25 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 
 class Optimizer(object):
+    """ The base class used for all optimizers
+    Args:
+        model: a model (currently supports scikit-learn, xgboost, or a class 
+               derived from optml.models.Model)
+        hyperparams: a list of Parameter instances
+        eval_func: loss function to be minimized. Takes input (y_true, y_predicted) where 
+                    y_true and y_predicted are numpy arrays
+
+    Attributes:
+        model: a model (currently supports scikit-learn, xgboost, or a class 
+               derived from optml.models.Model)
+        hyperparam_history: a list of dictionaries with parameters and scores
+        hyperparams: the list of parameters that the model is optimized over
+        eval_func: loss function to be minimized
+        model_module: can be 'sklearn', 'pipeline', 'xgboost', 'keras' or user-defined model
+        param_dict: dictionary where key=parameter name and value is the Parameter instance
+    """
 
     def __init__(self, model, hyperparams, eval_func):
-        """
-        Keyword arguments:
-            model - a model as specified in the readme
-            hyperparams - a list of Parameter instances
-            eval_func - scoring function to be minimized. Takes input (y_true, y_predicted) where 
-                        y_true and y_predicted are numpy arrays
-        """
         self.model = model
         self.hyperparam_history = []
         self.hyperparams = hyperparams
@@ -21,6 +31,16 @@ class Optimizer(object):
         self.param_dict = {p.name:p for p in hyperparams}
         
     def infer_model_type(self, model):
+        """ Identifies the type of model
+        Args:
+            model: a model (currently supports scikit-learn, xgboost, or a class 
+               derived from optml.models.Model)
+
+        Returns:
+            string: the type of the model; can be 'sklearn', 'pipeline', 'xgboost', 'keras' 
+                    or a user-defined model
+        
+        """
         if 'xgboost' in model.__module__.lower():
             return 'xgboost'
         elif 'pipeline' in model.__module__.lower():
@@ -35,13 +55,29 @@ class Optimizer(object):
 
     @abc.abstractmethod
     def get_next_hyperparameters(self):
+        """ Returns a hyperparameter based on previous iterations
+        """
         raise NotImplementedError("This class needs a get_next_hyperparameters(...) function")
 
     @abc.abstractmethod
+        """ Run the optimizer for some data
+        Args:
+            X: numpy array with features
+            y: numpy array with labels
+            params: dictionary with additional parameters used for fitting the model 
+        """
     def fit(self, X, y, params):
         raise NotImplementedError("This class needs a self.fit(X, y, params) function")
 
     def build_new_model(self, new_hyperparams):
+        """ Creates a new instance of the model with given parameters
+        Args:
+            new_hyperparams: dictionary of parameter name and value
+            
+        Returns:
+            a model (currently supports scikit-learn, xgboost, or a class 
+               derived from optml.models.Model)
+        """
         if self.model_module == 'pipeline':
                 new_model = self.model.set_params(**new_hyperparams)
         elif (self.model_module == 'sklearn') or (self.model_module == 'xgboost'):
@@ -58,10 +94,14 @@ class Optimizer(object):
         return new_model
 
     def get_best_params_and_model(self):
-        """
-        Returns the best parameters and model after optimization.
-        Keyword arguments:
+        """ Get the best parameters and model after running the optimizer
+        Args:
             None
+
+        Returns:
+            a dictionary with the optimal value for each parameter
+            a model (currently supports scikit-learn, xgboost, or a class 
+               derived from optml.models.Model)
         """
         best_params_idx = np.argmax([score for score, params in self.hyperparam_history])
         best_params = self.hyperparam_history[best_params_idx][1]
@@ -79,13 +119,14 @@ class MissingValueException(Exception):
 class Parameter(object):
     def __init__(self, name, param_type, lower=None, upper=None, possible_values=None, distribution=None):
         """
-        Keywords:
-            name - String specifying the name of this parameter
-            param_type - 'categorical', 'continuous', 'integer', 'boolean', 'int_array' or 'continuous_array'
-            lower - lower bound of parameter (only applicable to numerical types)
-            upper - upper bound of parameter (only applicable to numerical types)
-            possible_values - list of possible values a parameter can take (only applicable to categorical type)
-            distribution - specifies a distribution to sample from (only applicable to continuous types); not actually implemented yet
+        Args:
+            name: string specifying the name of this parameter
+            param_type: 'categorical', 'continuous', 'integer', 'boolean', 'int_array' or 'continuous_array'
+            lower: lower bound of parameter (only applicable to numerical types)
+            upper: upper bound of parameter (only applicable to numerical types)
+            possible_values: list of possible values a parameter can take (only applicable to categorical type)
+            distribution: not actually implemented yet; specifies a distribution to sample from 
+                          (only applicable to continuous types)
         """
         param_type = param_type.lower()
         if not param_type in ['categorical', 'continuous', 'integer', 'boolean', 'int_array', 'continuous_array']:
@@ -109,10 +150,12 @@ class Parameter(object):
             self.size = len(lower)
 
     def random_sample(self):
-        """
-        returns a uniformly random sample of the parameter
-        Keywords:
+        """ Returns a uniformly random sample of the parameter
+        Args:
             None
+
+        Returns:
+            a value of the parameter (integer for type 'integer' etc.)
         """
         if self.param_type == 'integer':
             return np.random.choice(np.arange(self.lower, self.upper+1, 1))
