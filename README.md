@@ -45,13 +45,13 @@ At the moment this library includes:
 * Hyperopt (using [hyperopt](https://github.com/hyperopt/hyperopt))
 
 ## How to Choose an Optimizer
-| number of evaluations | large search space | training in parallel | many parameters | handles binary/categorical variables| stochastic? |
+| | number of evaluations | large search space | training in parallel | handles binary/categorical variables| stochastic? |
 | ------------- | ------------------ | -------------------- | --------------- | ---------------------- | ------------------- |
-| Gridsearch | high | no | yes | no | yes | no |
-| Random Search | high | yes | yes | yes | yes | yes |
-| Bayesian Optimizer | low | yes | not implemented | yes | not implemented | yes |
-| hyperopt | low | yes | yes | yes | yes | yes |
-| Genetic Algo | high | yes | not implemented | yes | yes | yes |
+| Gridsearch | high | no | yes | yes | no |
+| Random Search | high | yes | yes |  yes | yes |
+| Bayesian Optimizer | low | yes | not implemented |  not implemented | yes |
+| hyperopt | low | yes | yes | yes | yes |
+| Genetic Algo | high | yes | not implemented | yes | yes |
 
 
 ## TODOs
