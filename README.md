@@ -44,16 +44,31 @@ At the moment this library includes:
 * Bayesian Optimisation
 * Hyperopt (using [hyperopt](https://github.com/hyperopt/hyperopt))
 
+## How to Choose an Optimizer
+OptML implements several optimization methods to address a range of requirements that can arise in data science problems. One of the main concerns is the effort required to evaluate a model for a set of parameters: If a model takes a long time to train we should choose an optimizer that maximises the potential improvement with every new set of parameters. In this case Bayesian Optimization and Hyperopt are more applicable. If a model is cheap to train then we can seek to parallelise the evaluations.
+
+Also consider the number of parameters and their ranges. Clearly, it is more difficult to optimize over a large search space. It is advised to only include parameters in the optimization if they are expected to improve the final model.
+
+Please also note that all of OptML's optimizers require parameters to be bounded. 
+
+| | number of evaluations | works with large search space | can use training in parallel | handles categorical parameters| stochastic optimisation |
+| ------------- | ------------------ | -------------------- | --------------- | ---------------------- | ------------------- |
+| Gridsearch | high | no | yes | yes | no |
+| Random Search | high | yes | yes |  yes | yes |
+| Genetic Algorithm | high | yes | not implemented | yes | yes |
+| Bayesian Optimizer | low | yes | not implemented | no | yes |
+| Hyperopt | low | yes | yes | yes | yes |
+
 
 ## TODOs
 1. algorithms:
-* more options for genetic algorithms
-* meta heuristics/swarm optimisation (Ant Colony Optimization etc.)
+* implement more options for genetic algorithms
+* meta heuristics/swarm optimisation
 2. functionality
 * early stopping if there is no significant improvement after x iterations
 3. usability
-* add categorical parameters
-* better documenation
+* add categorical parameters 
+* better documentation
 
 ## Author
 
