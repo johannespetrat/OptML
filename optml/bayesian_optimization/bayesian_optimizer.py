@@ -2,16 +2,16 @@ import numpy as np
 import warnings
 
 import sklearn.gaussian_process as gp
-from scipy.optimize import minimize, anneal
+from scipy.optimize import minimize
 from scipy.stats import norm
 
 from optml.optimizer_base import Optimizer, MissingValueException
-from optml.kernels import HammingKernel, WeightedHammingKernel
+from optml.bayesian_optimization.kernels import HammingKernel, WeightedHammingKernel
 from sklearn.gaussian_process.kernels import Matern
 
 from simanneal import Annealer
 
-from optml.gp_categorical import GaussianProcessRegressorWithCategorical
+from optml.bayesian_optimization.gp_categorical import GaussianProcessRegressorWithCategorical
 
 class DiscreteAnnealer(Annealer):
     def __init__(self, start_vals, eval_func, categorical_params):
@@ -154,10 +154,10 @@ class BayesianOptimizer(Optimizer):
             minimized = minimize(lambda x: self.generalized_expected_improvement(optimizer, x, self.exploration_control), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
         return minimized
 
-    def optimize_categorical_problem(self, start_vals):
+    def optimize_categorical_problem(self, optimizer, start_vals):
         xs = np.array([list(params.values()) for score, params in self.hyperparam_history])
 
-    def optimize_mixed_problem(self, start_vals):
+    def optimize_mixed_problem(self, optimizer, start_vals):
         import pdb; pdb.set_trace()
 
     def get_next_hyperparameters(self, optimizer):
@@ -218,8 +218,8 @@ class BayesianOptimizer(Optimizer):
                 xs = [list(params.values()) for score, params in self.hyperparam_history]
                 xs = np.array(xs, dtype=object)
                 ys = np.array([score for score, params in self.hyperparam_history])
-                optimizer.kernel(xs)
                 optimizer.fit(xs,ys) 
+                optimizer.predict(np.array([xs[0]]))
                 new_hyperparams = self.get_next_hyperparameters(optimizer)
             else:
                 new_hyperparams = self._random_sample()
