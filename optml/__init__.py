@@ -1,5 +1,7 @@
 from optml import models
 from optml import bayesian_optimizer
+from optml import kernels
+from optml import gp_categorical
 from optml import genetic_optimizer
 from optml import gridsearch_optimizer
 from optml import random_search

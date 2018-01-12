@@ -117,7 +117,7 @@ class Parameter(object):
         if self.param_type == 'integer':
             return np.random.choice(np.arange(self.lower, self.upper+1, 1))
         elif self.param_type == 'categorical':
-            return np.random.choice(self.possible_values)
+            return str(np.random.choice(self.possible_values))
         elif self.param_type == 'continuous':
             return np.random.uniform(self.lower, self.upper)
         elif self.param_type == 'boolean':
