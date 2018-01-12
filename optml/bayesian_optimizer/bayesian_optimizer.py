@@ -6,27 +6,10 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from optml.optimizer_base import Optimizer, MissingValueException
-from optml.bayesian_optimization.kernels import HammingKernel, WeightedHammingKernel
+from optml.bayesian_optimizer.kernels import HammingKernel, WeightedHammingKernel
 from sklearn.gaussian_process.kernels import Matern
 
-from simanneal import Annealer
-
-from optml.bayesian_optimization.gp_categorical import GaussianProcessRegressorWithCategorical
-
-class DiscreteAnnealer(Annealer):
-    def __init__(self, start_vals, eval_func, categorical_params):
-        super(DiscreteAnnealer, self).__init__(start_vals)
-        self.categorical_params = categorical_params
-        self.eval_func = eval_func
-
-    def move(self):
-        for hp in self.hyperparams:
-            if hp.param_type == 'categorical':
-                self.state[hp.name] = hp.random_sample()
-
-    def energy(self):
-        return eval_func(self.state) 
-
+from optml.bayesian_optimizer.gp_categorical import GaussianProcessRegressorWithCategorical
 
 class BayesianOptimizer(Optimizer):
     """ Bayesian Optimizer
@@ -56,8 +39,7 @@ class BayesianOptimizer(Optimizer):
         method
     """
     def __init__(self, model, hyperparams, eval_func, method='expected_improvement',
-                 kernel=gp.kernels.Matern(), n_restarts_optimizer=10,
-                 exploration_control = 0.01):
+                 n_restarts_optimizer=10, exploration_control=0.01):
         super(BayesianOptimizer, self).__init__(model, hyperparams, eval_func)
         self.get_type_of_optimization()
         self.kernel = self.choose_kernel()
@@ -102,11 +84,11 @@ class BayesianOptimizer(Optimizer):
         return bounds_arr
 
     def upper_confidence_bound(self, optimizer, x):
-        mu,std = optimizer.predict([x], return_std=True)
+        mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         return -1 * (mu+1.96*std)[0]
 
     def expected_improvement(self, optimizer, x):
-        mu, std = optimizer.predict([x], return_std=True)
+        mu, std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
         gamma = (current_best - mu[0])/std[0]
         exp_improv = std[0] * (gamma * norm.cdf(gamma) + norm.pdf(gamma))
@@ -118,7 +100,7 @@ class BayesianOptimizer(Optimizer):
             xi: controls the trade-off between exploration and exploitation
         as in https://arxiv.org/pdf/1012.2599 page 14
         """
-        mu,std = optimizer.predict([x], return_std=True)
+        mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         if std == 0:
             return 0
         else:
@@ -128,7 +110,7 @@ class BayesianOptimizer(Optimizer):
             return -1 * exp_improv
 
     def probability_of_improvement(self, optimizer, x):
-        mu,std = optimizer.predict([x], return_std=True)
+        mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
         gamma = (current_best - mu[0])/std[0]
         return -1 * norm.cdf(gamma)
@@ -137,7 +119,7 @@ class BayesianOptimizer(Optimizer):
         start_vals = []
         for hp in self.hyperparams:
             start_vals.append(hp.random_sample())
-        return np.array(start_vals)
+        return np.array([start_vals], dtype=object)
 
     def get_start_values_dict(self):
         start_vals = {hp.name:hp.random_sample() for hp in self.hyperparams}
@@ -163,9 +145,6 @@ class BayesianOptimizer(Optimizer):
     def get_next_hyperparameters(self, optimizer):
         best_params = {}
         for i in range(self.n_restarts_optimizer):
-            #start_vals = np.random.uniform(np.array(self.bounds_arr)[:,0], np.array(self.bounds_arr)[:,1])
-            import pdb; pdb.set_trace()
-            #[(v,self.expected_improvement(optimizer, [v])) for v in self.hyperparams[0].possible_values]
             start_vals = self.get_start_values_arr()
             if self.optimization_type == 'numerical':
                 minimized = self.optimize_continuous_problem(optimizer, start_vals)
@@ -199,6 +178,9 @@ class BayesianOptimizer(Optimizer):
             sampled_params[hp.name] = hp.random_sample()
         return sampled_params
 
+    def _get_ordered_param_dict(self, params):
+        return [params[hp.name] for hp in self.hyperparams]
+
     def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, start_vals=None):
         """
         """
@@ -215,11 +197,10 @@ class BayesianOptimizer(Optimizer):
                                                 normalize_y=True)
         for i in range(n_iters):            
             if i>0:           
-                xs = [list(params.values()) for score, params in self.hyperparam_history]
+                xs = [self._get_ordered_param_dict(params) for score, params in self.hyperparam_history]
                 xs = np.array(xs, dtype=object)
                 ys = np.array([score for score, params in self.hyperparam_history])
-                optimizer.fit(xs,ys) 
-                optimizer.predict(np.array([xs[0]]))
+                optimizer.fit(xs,ys)
                 new_hyperparams = self.get_next_hyperparameters(optimizer)
             else:
                 new_hyperparams = self._random_sample()
