@@ -2,9 +2,11 @@ import numpy as np
 
 from sklearn.gaussian_process.kernels import Hyperparameter
 
+from sklearn.gaussian_process.kernels import Sum as sk_Sum
 from sklearn.gaussian_process.kernels import Kernel as sk_Kernel
 from sklearn.gaussian_process.kernels import NormalizedKernelMixin
 from sklearn.gaussian_process.kernels import StationaryKernelMixin
+from sklearn.gaussian_process.kernels import WhiteKernel as sk_WhiteKernel
 
 class Kernel(sk_Kernel):
     """
@@ -13,7 +15,7 @@ class Kernel(sk_Kernel):
     """
     def __add__(self, b):
         if not isinstance(b, Kernel):
-            return Sum(self, ConstantKernel(b))
+            raise Exception, "Need to some with another kernel"
         return Sum(self, b)
 
     def __radd__(self, b):
@@ -49,6 +51,20 @@ class Kernel(sk_Kernel):
             Gradient of K(x, X_train) with respect to x.
         """
         raise NotImplementedError
+
+
+class Sum(Kernel, sk_Sum):
+
+    def gradient_x(self, x, X_train):
+        return (
+            self.k1.gradient_x(x, X_train) +
+            self.k2.gradient_x(x, X_train)
+        )
+
+class WhiteKernel(Kernel, sk_WhiteKernel):
+
+    def gradient_x(self, x, X_train):
+        return np.zeros_like(X_train)
 
 
 class HammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
@@ -233,9 +249,9 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
         categorical_idxs = np.where(np.array(param_types)=='categorical')[0]
 
         indicator = np.expand_dims(X[:, categorical_idxs], axis=1) != Y[:, categorical_idxs]
-        categorical_part = -np.sum(length_scale * indicator, axis=2)
+        categorical_part = np.array(-np.sum(length_scale * indicator, axis=2), dtype='float')
         squared_diff = (np.expand_dims(X[:, numerical_idxs], axis=1) - Y[:, numerical_idxs])**2
-        continuous_part = -np.sum(length_scale * squared_diff)
+        continuous_part = np.array(-np.sum(length_scale * squared_diff, axis=-1), dtype='float')
         kernel_prod = np.exp(categorical_part + continuous_part)
 
         # dK / d theta = (dK / dl) * (dl / d theta)
@@ -245,11 +261,10 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
         # dK / dL computation
         if anisotropic:
             grad = (-np.expand_dims(kernel_prod, axis=-1) *
-                    np.array(indicator, dtype=np.float32))
+                    np.expand_dims((categorical_part + continuous_part), axis=-1))
         else:
             grad = np.expand_dims(kernel_prod * (categorical_part + continuous_part),
                                    axis=-1)
-
         grad *= length_scale
         if eval_gradient:
             return kernel_prod, grad

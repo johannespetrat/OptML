@@ -16,6 +16,10 @@ class BayesianOptimizer(Optimizer):
     Implemented as described in the paper 'Practical Bayesian Optimization of Machine 
     Learning Algorithms' (https://arxiv.org/abs/1206.2944)
 
+    For categorical parameters the optimizer used a WeightedHammingKernel as described in
+    'Sequential Model-Based Optimization for General Algorithm Configuration' by 
+    Frank Hutter, Holger H. Hoos, Kevin Leyton-Brown doi:10.1007/978-3-642-25566-3_40
+
     Args:
         model: a model (currently supports scikit-learn, xgboost, or a class 
                derived from optml.models.Model)
