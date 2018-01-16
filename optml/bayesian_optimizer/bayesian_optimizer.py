@@ -94,7 +94,7 @@ class BayesianOptimizer(Optimizer):
     def expected_improvement(self, optimizer, x):
         mu, std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
-        gamma = (current_best - mu[0])/std[0]
+        gamma = (mu[0] - current_best)/std[0]
         exp_improv = std[0] * (gamma * norm.cdf(gamma) + norm.pdf(gamma))
         return -1 * exp_improv
 
@@ -116,7 +116,7 @@ class BayesianOptimizer(Optimizer):
     def probability_of_improvement(self, optimizer, x):
         mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
-        gamma = (current_best - mu[0])/std[0]
+        gamma = (mu[0] - current_best)/std[0]
         return -1 * norm.cdf(gamma)
 
     def get_start_values_arr(self):
