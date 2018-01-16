@@ -7,6 +7,7 @@ from scipy.stats import norm
 
 from optml.optimizer_base import Optimizer, MissingValueException
 from optml.bayesian_optimizer.kernels import HammingKernel, WeightedHammingKernel
+from optml.bayesian_optimizer.annealer import MixedAnnealer
 from sklearn.gaussian_process.kernels import Matern
 
 from optml.bayesian_optimizer.gp_categorical import GaussianProcessRegressorWithCategorical
@@ -77,7 +78,6 @@ class BayesianOptimizer(Optimizer):
 
     def set_hyperparam_bounds(self):
         self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams if hp.param_type!='categorical'])
-        #self.bounds_arr = self.add_bounds_for_categorical(bounds_arr)
 
     def add_bounds_for_categorical(self, bounds_arr):
         for param in self.hyperparams:
@@ -94,9 +94,12 @@ class BayesianOptimizer(Optimizer):
     def expected_improvement(self, optimizer, x):
         mu, std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
-        gamma = (mu[0] - current_best)/std[0]
-        exp_improv = std[0] * (gamma * norm.cdf(gamma) + norm.pdf(gamma))
-        return -1 * exp_improv
+        if std == 0:
+            return 0
+        else:
+            gamma = (mu[0] - current_best)/std[0]
+            exp_improv = std[0] * (gamma * norm.cdf(gamma) + norm.pdf(gamma))
+            return -1 * exp_improv
 
     def generalized_expected_improvement(self, optimizer, x, xi=0.01):
         """
@@ -116,8 +119,11 @@ class BayesianOptimizer(Optimizer):
     def probability_of_improvement(self, optimizer, x):
         mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
-        gamma = (mu[0] - current_best)/std[0]
-        return -1 * norm.cdf(gamma)
+        if std == 0:
+            return 0
+        else:
+            gamma = (mu[0] - current_best)/std[0]
+            return -1 * norm.cdf(gamma)
 
     def get_start_values_arr(self):
         start_vals = []
@@ -144,7 +150,15 @@ class BayesianOptimizer(Optimizer):
         xs = np.array([list(params.values()) for score, params in self.hyperparam_history])
 
     def optimize_mixed_problem(self, optimizer, start_vals):
-        import pdb; pdb.set_trace()
+        annealer = MixedAnnealer(self, optimizer)
+        result = annealer.anneal()
+        if np.isnan(result[1]):
+            success = False
+        else:
+            success = True
+        minimized = {'success': success,
+                     'x': self._get_ordered_param_dict(result[0])}
+        return minimized
 
     def get_next_hyperparameters(self, optimizer):
         best_params = {}
@@ -156,7 +170,6 @@ class BayesianOptimizer(Optimizer):
                 minimized = self.optimize_categorical_problem(optimizer, start_vals)
             else:
                 minimized = self.optimize_mixed_problem(optimizer, start_vals)
-            
 
             self.success = minimized['success']
             if minimized['success']:
