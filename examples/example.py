@@ -31,7 +31,9 @@ svm = SVC(C=1, kernel='rbf', degree=3)
 rf_params = [Parameter(name='min_samples_split', param_type='integer', lower=2, upper=6),
              Parameter(name='min_weight_fraction_leaf', param_type='continuous', lower=0, upper=0.5)]
 svm_params = [Parameter(name='C', param_type='continuous', lower=0.1, upper=5),
-              Parameter(name='degree', param_type='integer', lower=1, upper=5)]
+              Parameter(name='degree', param_type='integer', lower=1, upper=5),
+              Parameter(name='kernel', param_type='categorical', 
+                        possible_values=['linear', 'poly', 'rbf', 'sigmoid'])]
 
 model = svm
 params = svm_params
@@ -41,13 +43,10 @@ def clf_score(y_true,y_pred):
 
 rand_search = RandomSearchOptimizer(model=model,
                                     eval_func=clf_score,
-                                    hyperparams=params,
-                                    grid_size=10)
-
-kernel = gp.kernels.Matern()        
+                                    hyperparams=params)
+      
 bayesOpt = BayesianOptimizer(model=model, 
-                             hyperparams=params, 
-                             kernel=kernel,                                  
+                             hyperparams=params,
                              eval_func=clf_score)
 n_init_samples = 4    
 mutation_noise = {'C': 0.4, 'degree': 0.4, 
