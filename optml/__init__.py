@@ -6,4 +6,4 @@ from optml import random_search
 from optml import hyperopt_optimizer
 from optml.optimizer_base import Parameter
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
