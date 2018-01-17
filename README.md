@@ -13,7 +13,7 @@ In order to run with [Keras](https://github.com/fchollet/keras) and [XGBoost](ht
 
 ## Installation
 
-If Scikit-Learn is version 0.19 or higher simply install mlopt using `pip install optml` and you're ready to go.
+If Scikit-Learn is version 0.19 or higher simply install optml using `pip install optml` and you're ready to go.
 
 
 ## Usage
