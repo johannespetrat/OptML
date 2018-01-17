@@ -43,7 +43,7 @@ At the moment this library includes:
 * Random Search
 * Parallelized Gridsearch
 * A simple Genetic Algorithm
-* Bayesian Optimisation
+* Bayesian Optimisation (also supporting categorical parameters)
 * Hyperopt (using [hyperopt](https://github.com/hyperopt/hyperopt))
 
 
@@ -54,7 +54,6 @@ At the moment this library includes:
 2. functionality
 * early stopping if there is no significant improvement after x iterations
 3. usability
-* add categorical parameters
 * better documenation
 
 ## Author
