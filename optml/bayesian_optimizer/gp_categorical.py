@@ -9,17 +9,20 @@ from sklearn.utils import check_random_state
 import sklearn.gaussian_process as gp
 
 class GaussianProcessRegressorWithCategorical(gp.GaussianProcessRegressor):
+    """
+    This is exactly the same as scikit-learn's GaussianProcessRegressor, but with
+    two checks removed. Since the input may contain string values check_array and
+    check_X_y would throw exceptions. These are commented in lines 30 and 132
+    """
     def fit(self, X, y):
         """Fit Gaussian process regression model.
-        Parameters
-        ----------
-        X : array-like, shape = (n_samples, n_features)
-            Training data
-        y : array-like, shape = (n_samples, [n_output_dims])
-            Target values
-        Returns
-        -------
-        self : returns an instance of self.
+        
+        Args:
+            X: Training data
+            y: Target values
+
+        Returns:
+            self : returns an instance of self.
         """
         self.kernel_ = clone(self.kernel)
         self._rng = check_random_state(self.random_state)
@@ -107,26 +110,19 @@ class GaussianProcessRegressorWithCategorical(gp.GaussianProcessRegressor):
         In addition to the mean of the predictive distribution, also its
         standard deviation (return_std=True) or covariance (return_cov=True).
         Note that at most one of the two can be requested.
-        Parameters
-        ----------
-        X : array-like, shape = (n_samples, n_features)
-            Query points where the GP is evaluated
-        return_std : bool, default: False
-            If True, the standard-deviation of the predictive distribution at
-            the query points is returned along with the mean.
-        return_cov : bool, default: False
-            If True, the covariance of the joint predictive distribution at
-            the query points is returned along with the mean
-        Returns
-        -------
-        y_mean : array, shape = (n_samples, [n_output_dims])
-            Mean of predictive distribution a query points
-        y_std : array, shape = (n_samples,), optional
-            Standard deviation of predictive distribution at query points.
-            Only returned when return_std is True.
-        y_cov : array, shape = (n_samples, n_samples), optional
-            Covariance of joint predictive distribution a query points.
-            Only returned when return_cov is True.
+        Args:
+            X : Query points where the GP is evaluated
+            return_std : If True, the standard-deviation of the predictive distribution at
+                the query points is returned along with the mean. default is False
+            return_cov : If True, the covariance of the joint predictive distribution at
+                the query points is returned along with the mean. default is False
+        
+        Returns:
+            y_mean: Mean of predictive distribution a query points
+            y_std: Standard deviation of predictive distribution at query points.
+                   Only returned when return_std is True.
+            y_cov: Covariance of joint predictive distribution a query points.
+                   Only returned when return_cov is True.
         """
         if return_std and return_cov:
             raise RuntimeError(

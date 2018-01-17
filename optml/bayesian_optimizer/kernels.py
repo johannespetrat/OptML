@@ -10,9 +10,10 @@ from sklearn.gaussian_process.kernels import WhiteKernel as sk_WhiteKernel
 
 class Kernel(sk_Kernel):
     """
-    Base class for skopt.gaussian_process kernels.
+    Base class for kernels in scikit-optimize.
     Supports computation of the gradient of the kernel with respect to X
-    taken from https://github.com/scikit-optimize/scikit-optimize
+    the code of this class is taken from 
+    https://github.com/scikit-optimize/scikit-optimize
     """
     def __add__(self, b):
         if not isinstance(b, Kernel):
@@ -40,23 +41,20 @@ class Kernel(sk_Kernel):
     def gradient_x(self, x, X_train):
         """
         Computes gradient of K(x, X_train) with respect to x
-        Parameters
-        ----------
-        x: array-like, shape=(n_features,)
-            A single test point.
-        Y: array-like, shape=(n_samples, n_features)
-            Training data used to fit the gaussian process.
-        Returns
-        -------
-        gradient_x: array-like, shape=(n_samples, n_features)
-            Gradient of K(x, X_train) with respect to x.
+        Args:
+            x: A single test point.
+            Y: Training data used to fit the gaussian process.
+        Returns:
+            gradient_x: array-like, shape=(n_samples, n_features)
+                Gradient of K(x, X_train) with respect to x.
         """
         raise NotImplementedError
 
 
 class Sum(Kernel, sk_Sum):
     """
-    taken from https://github.com/scikit-optimize/scikit-optimize
+    Implements the sum of two kernels. This code is taken
+    from https://github.com/scikit-optimize/scikit-optimize
     """
     def gradient_x(self, x, X_train):
         return (
@@ -66,7 +64,9 @@ class Sum(Kernel, sk_Sum):
 
 class WhiteKernel(Kernel, sk_WhiteKernel):
     """
-    taken from https://github.com/scikit-optimize/scikit-optimize
+    Implements a white noise kernel that is compatible with kernels
+    defined in this script. This code is taken from
+    https://github.com/scikit-optimize/scikit-optimize
     """
     def gradient_x(self, x, X_train):
         return np.zeros_like(X_train)
@@ -77,14 +77,12 @@ class HammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
     """
     The HammingKernel is used to handle categorical inputs.
     ``K(x_1, x_2) = exp(\sum_{j=1}^{d} -ls_j * (I(x_1j != x_2j)))``
-    Parameters
-    -----------
-    * `length_scale` [float, array-like, shape=[n_features,], 1.0 (default)]
-        The length scale of the kernel. If a float, an isotropic kernel is
-        used. If an array, an anisotropic kernel is used where each dimension
-        of l defines the length-scale of the respective feature dimension.
-    * `length_scale_bounds` [array-like, [1e-5, 1e5] (default)]
-        The lower and upper bound on length_scale
+    
+    Args:
+        length_scale: The length scale of the kernel. If a float, an isotropic kernel is
+            used. If an array, an anisotropic kernel is used where each dimension
+            of l defines the length-scale of the respective feature dimension.
+        length_scale_bounds: The lower and upper bound on length_scale
     """
 
     def __init__(self, length_scale=1.0, length_scale_bounds=(1e-5, 1e5)):
@@ -93,6 +91,9 @@ class HammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
 
     @property
     def hyperparameter_length_scale(self):
+        """
+        a getter method for the length_scale
+        """
         length_scale = self.length_scale
         anisotropic = np.iterable(length_scale) and len(length_scale) > 1
         if anisotropic:
@@ -104,24 +105,20 @@ class HammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
 
     def __call__(self, X, Y=None, eval_gradient=False):
         """Return the kernel k(X, Y) and optionally its gradient.
-        Parameters
-        ----------
-        * `X` [array-like, shape=(n_samples_X, n_features)]
-            Left argument of the returned kernel k(X, Y)
-        * `Y` [array-like, shape=(n_samples_Y, n_features) or None(default)]
-            Right argument of the returned kernel k(X, Y). If None, k(X, X)
-            if evaluated instead.
-        * `eval_gradient` [bool, False(default)]
-            Determines whether the gradient with respect to the kernel
-            hyperparameter is determined. Only supported when Y is None.
-        Returns
-        -------
-        * `K` [array-like, shape=(n_samples_X, n_samples_Y)]
-            Kernel k(X, Y)
-        * `K_gradient` [array-like, shape=(n_samples_X, n_samples_X, n_dims)]
-            The gradient of the kernel k(X, X) with respect to the
-            hyperparameter of the kernel. Only returned when eval_gradient
-            is True.
+        The code for this kernel is taken from 
+        from https://github.com/scikit-optimize/scikit-optimize
+        Args:
+            X: Left argument of the returned kernel k(X, Y)
+            Y: Right argument of the returned kernel k(X, Y). If None, k(X, X)
+                if evaluated instead.
+            eval_gradient: Determines whether the gradient with respect to the kernel
+                hyperparameter is determined. Only supported when Y is None.
+        
+        Returns:
+            K: Kernel k(X, Y)
+            K_gradient: The gradient of the kernel k(X, X) with respect to the
+                hyperparameter of the kernel. Only returned when eval_gradient
+                is True.
         """
         length_scale = self.length_scale
         anisotropic = np.iterable(length_scale) and len(length_scale) > 1
@@ -176,14 +173,11 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
     The WeightedHammingKernel is used to handle categorical inputs.
     ``K(x_1, x_2) = exp\(\sum_{j=1}^{d} -ls_j * (I(x_1j != x_2j)) + 
                          \sum_{j=1}^{d} -ls_j * (x_{1,j} - x_{2,j})^2)``
-    Parameters
-    -----------
-    * `length_scale` [float, array-like, shape=[n_features,], 1.0 (default)]
-        The length scale of the kernel. If a float, an isotropic kernel is
+    Args:
+    length_scale: The length scale of the kernel. If a float, an isotropic kernel is
         used. If an array, an anisotropic kernel is used where each dimension
         of l defines the length-scale of the respective feature dimension.
-    * `length_scale_bounds` [array-like, [1e-5, 1e5] (default)]
-        The lower and upper bound on length_scale
+    length_scale_bounds: The lower and upper bound on length_scale
     """
 
     def __init__(self, length_scale=1.0, length_scale_bounds=(1e-5, 1e5)):
@@ -203,24 +197,18 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
 
     def __call__(self, X, Y=None, eval_gradient=False):
         """Return the kernel k(X, Y) and optionally its gradient.
-        Parameters
-        ----------
-        * `X` [array-like, shape=(n_samples_X, n_features)]
-            Left argument of the returned kernel k(X, Y)
-        * `Y` [array-like, shape=(n_samples_Y, n_features) or None(default)]
-            Right argument of the returned kernel k(X, Y). If None, k(X, X)
-            if evaluated instead.
-        * `eval_gradient` [bool, False(default)]
-            Determines whether the gradient with respect to the kernel
-            hyperparameter is determined. Only supported when Y is None.
-        Returns
-        -------
-        * `K` [array-like, shape=(n_samples_X, n_samples_Y)]
-            Kernel k(X, Y)
-        * `K_gradient` [array-like, shape=(n_samples_X, n_samples_X, n_dims)]
-            The gradient of the kernel k(X, X) with respect to the
-            hyperparameter of the kernel. Only returned when eval_gradient
-            is True.
+        Args:
+            X:Left argument of the returned kernel k(X, Y)
+            Y: Right argument of the returned kernel k(X, Y). If None, k(X, X)
+                if evaluated instead.
+            eval_gradient: Determines whether the gradient with respect to the kernel
+                hyperparameter is determined. Only supported when Y is None.
+        
+        Returns:
+            K: Kernel k(X, Y)
+            K_gradient: The gradient of the kernel k(X, X) with respect to the
+                hyperparameter of the kernel. Only returned when eval_gradient
+                is True.
         """
         length_scale = self.length_scale
         anisotropic = np.iterable(length_scale) and len(length_scale) > 1
@@ -249,7 +237,6 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
         else:
             Y = np.atleast_2d(Y)
 
-        #import pdb; pdb.set_trace()
         param_types = np.array(['categorical' if isinstance(x, str) else 'numeric' for x in X[0]])
         numerical_idxs = np.where(np.array(param_types)=='numeric')[0]
         categorical_idxs = np.where(np.array(param_types)=='categorical')[0]
@@ -257,8 +244,6 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
         indicator = np.expand_dims(X[:, categorical_idxs], axis=1) != Y[:, categorical_idxs]
         categorical_part = -1 * np.array(np.sum(length_scale * indicator, axis=2), dtype='float')
         squared_diff = (np.expand_dims(X[:, numerical_idxs], axis=1) - Y[:, numerical_idxs])**2
-        #length_scale_continuous = length_scale * np.sum(indicator)/np.sum(squared_diff)
-        #import pdb; pdb.set_trace()
         continuous_part = -1 * np.array(np.sum(length_scale * squared_diff, axis=2), dtype='float')
         kernel_prod = np.exp(categorical_part + continuous_part)
 
