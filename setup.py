@@ -21,7 +21,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='optml',
 
-    version='0.1.0',
+    version='0.2.0',
 
     description='A library for hyperparameter optimization of ML models',
     long_description=long_description,
@@ -62,7 +62,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='optimisation machine learning hyperparameter bayesian gridsearch',
+    keywords='optimization machine learning hyperparameter bayesian gridsearch',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -76,7 +76,10 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['scikit-learn>="0.19.0"'],
+    install_requires=['scikit-learn>="0.19.0"', 
+                      'simanneal', 
+                      'numpy',
+                      'scipy'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

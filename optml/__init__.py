@@ -5,3 +5,5 @@ from optml import gridsearch_optimizer
 from optml import random_search
 from optml import hyperopt_optimizer
 from optml.optimizer_base import Parameter
+
+version = '0.2.0'

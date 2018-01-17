@@ -12,6 +12,7 @@ class Kernel(sk_Kernel):
     """
     Base class for skopt.gaussian_process kernels.
     Supports computation of the gradient of the kernel with respect to X
+    taken from https://github.com/scikit-optimize/scikit-optimize
     """
     def __add__(self, b):
         if not isinstance(b, Kernel):
@@ -54,7 +55,9 @@ class Kernel(sk_Kernel):
 
 
 class Sum(Kernel, sk_Sum):
-
+    """
+    taken from https://github.com/scikit-optimize/scikit-optimize
+    """
     def gradient_x(self, x, X_train):
         return (
             self.k1.gradient_x(x, X_train) +
@@ -62,7 +65,9 @@ class Sum(Kernel, sk_Sum):
         )
 
 class WhiteKernel(Kernel, sk_WhiteKernel):
-
+    """
+    taken from https://github.com/scikit-optimize/scikit-optimize
+    """
     def gradient_x(self, x, X_train):
         return np.zeros_like(X_train)
 
@@ -168,8 +173,9 @@ class HammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
 class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
                     Kernel):
     """
-    The HammingKernel is used to handle categorical inputs.
-    ``K(x_1, x_2) = exp(\sum_{j=1}^{d} -ls_j * (I(x_1j != x_2j)))``
+    The WeightedHammingKernel is used to handle categorical inputs.
+    ``K(x_1, x_2) = exp\(\sum_{j=1}^{d} -ls_j * (I(x_1j != x_2j)) + 
+                         \sum_{j=1}^{d} -ls_j * (x_{1,j} - x_{2,j})^2)``
     Parameters
     -----------
     * `length_scale` [float, array-like, shape=[n_features,], 1.0 (default)]
@@ -249,16 +255,13 @@ class WeightedHammingKernel(StationaryKernelMixin, NormalizedKernelMixin,
         categorical_idxs = np.where(np.array(param_types)=='categorical')[0]
 
         indicator = np.expand_dims(X[:, categorical_idxs], axis=1) != Y[:, categorical_idxs]
-        categorical_part = np.array(-np.sum(length_scale * indicator, axis=2), dtype='float')
+        categorical_part = -1 * np.array(np.sum(length_scale * indicator, axis=2), dtype='float')
         squared_diff = (np.expand_dims(X[:, numerical_idxs], axis=1) - Y[:, numerical_idxs])**2
-        continuous_part = np.array(-np.sum(length_scale * squared_diff, axis=-1), dtype='float')
+        #length_scale_continuous = length_scale * np.sum(indicator)/np.sum(squared_diff)
+        #import pdb; pdb.set_trace()
+        continuous_part = -1 * np.array(np.sum(length_scale * squared_diff, axis=2), dtype='float')
         kernel_prod = np.exp(categorical_part + continuous_part)
 
-        # dK / d theta = (dK / dl) * (dl / d theta)
-        # theta = log(l) => dl / d (theta) = e^theta = l
-        # dK / d theta = l * dK / dl
-
-        # dK / dL computation
         if anisotropic:
             grad = (-np.expand_dims(kernel_prod, axis=-1) *
                     np.expand_dims((categorical_part + continuous_part), axis=-1))

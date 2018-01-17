@@ -270,7 +270,7 @@ class BayesianOptimizer(Optimizer):
     def optimize_mixed_problem(self, optimizer, start_vals):
         """
         Maximizes the acquisition function for problems with mixed types of hyperparameters.
-        The optimization method used is Simmulated Annealing.
+        The optimization method used is Simulated Annealing.
 
         Args:
             optimizer: a fitted gaussian process regressor
