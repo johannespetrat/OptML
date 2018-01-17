@@ -17,7 +17,7 @@ class Kernel(sk_Kernel):
     """
     def __add__(self, b):
         if not isinstance(b, Kernel):
-            raise Exception, "Need to some with another kernel"
+            raise Exception("Need to some with another kernel")
         return Sum(self, b)
 
     def __radd__(self, b):

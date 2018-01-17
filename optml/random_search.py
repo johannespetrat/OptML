@@ -1,8 +1,6 @@
 import numpy as np
 from optml.optimizer_base import Optimizer, MissingValueException
-from models import Model
-#from model_converter import ModelConverter
-
+from .models import Model
 
 class RandomSearchOptimizer(Optimizer):
     def __init__(self, model, hyperparams, eval_func):

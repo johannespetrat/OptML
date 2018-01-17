@@ -1,1 +1,1 @@
-from bayesian_optimizer import BayesianOptimizer
+from .bayesian_optimizer import BayesianOptimizer
