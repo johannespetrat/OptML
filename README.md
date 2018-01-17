@@ -58,7 +58,7 @@ Please also note that all of OptML's optimizers require parameters to be bounded
 | Gridsearch | high | no | yes | yes | no |
 | Random Search | high | yes | yes |  yes | yes |
 | Genetic Algorithm | high | yes | not implemented | yes | yes |
-| Bayesian Optimizer | low | yes | not implemented | no | yes |
+| Bayesian Optimizer | low | yes | not implemented | yes | yes |
 | Hyperopt | low | yes | yes | yes | yes |
 
 
