@@ -9,6 +9,8 @@ This package requires scikit-learn with version 0.19.0 or higher. If Scikit-Lear
 
 In order to run with [Keras](https://github.com/fchollet/keras) and [XGBoost](https://github.com/dmlc/xgboost) models these libraries have to be install as well, of course.
 
+
+
 ## Installation
 
 If Scikit-Learn is version 0.19 or higher simply install mlopt using `pip install optml` and you're ready to go.
@@ -41,7 +43,7 @@ At the moment this library includes:
 * Random Search
 * Parallelized Gridsearch
 * A simple Genetic Algorithm
-* Bayesian Optimisation
+* Bayesian Optimisation (also supporting categorical parameters)
 * Hyperopt (using [hyperopt](https://github.com/hyperopt/hyperopt))
 
 ## How to Choose an Optimizer
@@ -67,8 +69,7 @@ Please also note that all of OptML's optimizers require parameters to be bounded
 2. functionality
 * early stopping if there is no significant improvement after x iterations
 3. usability
-* add categorical parameters 
-* better documentation
+* better documenation
 
 ## Author
 
