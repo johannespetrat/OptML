@@ -79,7 +79,8 @@ setup(
     install_requires=['scikit-learn>="0.19.0"', 
                       'simanneal', 
                       'numpy',
-                      'scipy'],
+                      'scipy',
+                      'hyperopt'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
