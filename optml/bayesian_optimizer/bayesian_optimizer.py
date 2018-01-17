@@ -26,7 +26,7 @@ class BayesianOptimizer(Optimizer):
                derived from optml.models.Model)
         hyperparams: a list of Parameter instances
         eval_func: loss function to be minimized. Takes input (y_true, y_predicted) where 
-                    y_true and y_predicted are numpy arrays
+            y_true and y_predicted are numpy arrays
 
     Attributes:
         model: a model (currently supports scikit-learn, xgboost, or a class 
@@ -36,14 +36,16 @@ class BayesianOptimizer(Optimizer):
         eval_func: loss function to be minimized
         model_module: can be 'sklearn', 'pipeline', 'xgboost', 'keras' or user-defined model
         param_dict: dictionary where key=parameter name and value is the Parameter instance
-        kernel
-        n_restart_optimizer
-        eval_func
-        bounds_arr
-        success
-        method
+        n_restart_optimizer: number of retries if maximization of acquisition function is 
+            unsuccessful
+        eval_func: loss function to be minimized. Takes input (y_true, y_predicted) where 
+            y_true and y_predicted are numpy arrays
+        bounds_arr: a Nx2 numpy array giving lower and upper bounds of all numeric 
+            parameters. N = #hyperparameters to optimize
+        success: Flag indicating whether acquisition function could successfully be maximized
+        acquisition_function: 
     """
-    def __init__(self, model, hyperparams, eval_func, method='expected_improvement',
+    def __init__(self, model, hyperparams, eval_func, acquisition_function='expected_improvement',
                  n_restarts_optimizer=10, exploration_control=0.01):
         super(BayesianOptimizer, self).__init__(model, hyperparams, eval_func)
         self.get_type_of_optimization()
@@ -52,11 +54,23 @@ class BayesianOptimizer(Optimizer):
         self.eval_func = eval_func
         self.set_hyperparam_bounds()
         self.success = None
-        self.method = method
-        if method == 'generalized_expected_improvement':
+        self.acquisition_function = acquisition_function
+        if acquisition_function == 'generalized_expected_improvement':
             self.exploration_control = exploration_control
 
     def choose_kernel(self):
+        """
+        Selects a kernel depending on the type of optimization problem. 
+            - Hamming kernel for problems with only categorical hyperparameters
+            - Weighted Hamming kernel for problems with mixed categorical and numerical hyperparameters
+            - Matern kernel for problems with only numerical hyperparameters
+
+        Args:
+            None
+
+        Returns:
+            a kernel that is compatible with kernels in sklearn.gaussian_process.kernels
+        """
         n_categorical = np.sum([hp.param_type=='categorical' for hp in self.hyperparams])
         if self.optimization_type == 'categorical':
             kernel = HammingKernel()
@@ -68,18 +82,39 @@ class BayesianOptimizer(Optimizer):
         return kernel
 
     def get_type_of_optimization(self):
+        """
+        Evaluates the type of optimization problem.
+
+        Args:
+            None
+        Returns:
+            A string with either 'categorical', 'mixed' or 'numerical'
+
+        """
         n_categorical = np.sum([hp.param_type=='categorical' for hp in self.hyperparams])
         if n_categorical == len(self.hyperparams):
             self.optimization_type = 'categorical'
-        elif n_categorical>=0:
+        elif n_categorical>0:
             self.optimization_type = 'mixed'
         else:
             self.optimization_type = 'numerical'
 
     def set_hyperparam_bounds(self):
+        """
+        Sets the lower and upper limits for each numerical hyperparameter. 
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.bounds_arr = np.array([[hp.lower, hp.upper] for hp in self.hyperparams if hp.param_type!='categorical'])
 
     def add_bounds_for_categorical(self, bounds_arr):
+        """
+        not used
+        """
         for param in self.hyperparams:
             if param.param_type == 'categorical':
                 lower = np.zeros(len(param.possible_values))
@@ -88,10 +123,28 @@ class BayesianOptimizer(Optimizer):
         return bounds_arr
 
     def upper_confidence_bound(self, optimizer, x):
+        """
+        Calculates the upper confidence bound as an acquisition function.
+
+        Args:
+            optimizer: a fitted gaussian process regressor
+            x: a numpy array with parameter values
+        Returns:
+            a float
+        """
         mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
-        return -1 * (mu+1.96*std)[0]
+        return (mu+1.96*std)[0]
 
     def expected_improvement(self, optimizer, x):
+        """
+        Calculates the expected improvement as an acquisition function.
+
+        Args:
+            optimizer: a fitted gaussian process regressor
+            x: a numpy array with parameter values
+        Returns:
+            a float
+        """
         mu, std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
         if std == 0:
@@ -99,13 +152,20 @@ class BayesianOptimizer(Optimizer):
         else:
             gamma = (mu[0] - current_best)/std[0]
             exp_improv = std[0] * (gamma * norm.cdf(gamma) + norm.pdf(gamma))
-            return -1 * exp_improv
+            return exp_improv
 
     def generalized_expected_improvement(self, optimizer, x, xi=0.01):
         """
+        Calculates the generalized expected improvement as an acquisition function
+        following the definition in https://arxiv.org/pdf/1012.2599 (page 14)
+
         Args:
-            xi: controls the trade-off between exploration and exploitation
-        as in https://arxiv.org/pdf/1012.2599 page 14
+            optimizer: a fitted gaussian process
+            x: a numpy array with parameter values
+            xi: controls the trade-off between exploration and exploitation. default is 0.01
+                which is suggested in the paper
+        Returns:
+            a float
         """
         mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         if std == 0:
@@ -114,42 +174,113 @@ class BayesianOptimizer(Optimizer):
             current_best = max([score for score, params in self.hyperparam_history])
             gamma = (mu[0] - current_best - xi)/std[0]
             exp_improv = (mu[0] - current_best - xi) * norm.cdf(gamma) + std[0] * norm.pdf(gamma)
-            return -1 * exp_improv
+            return exp_improv
 
     def probability_of_improvement(self, optimizer, x):
+        """
+        Calculates the probability of improvement as an acquisition function
+    
+        Args:
+            optimizer: a fitted gaussian process
+            x: a numpy array with parameter values
+        Returns:
+            a float
+        """
         mu,std = optimizer.predict(np.atleast_2d(x), return_std=True)
         current_best = max([score for score, params in self.hyperparam_history])
         if std == 0:
             return 0
         else:
             gamma = (mu[0] - current_best)/std[0]
-            return -1 * norm.cdf(gamma)
+            return norm.cdf(gamma)
 
-    def get_start_values_arr(self):
+    def get_random_values_arr(self):
+        """
+        Generates a numpy array with randomly sampled values for 
+        each hyperparameter. Note that the order is the same as in 
+        self.hyperparams.
+
+        Args:
+            None
+
+        Returns:
+            a numpy array with potentially mixed types
+        """
         start_vals = []
         for hp in self.hyperparams:
             start_vals.append(hp.random_sample())
         return np.array([start_vals], dtype=object)
 
-    def get_start_values_dict(self):
+    def get_random_values_dict(self):
+        """
+        Generates a dictionary with randomly sampled values for 
+        each hyperparameter.
+
+        Args:
+            None
+
+        Returns:
+            a dictionary with parameter names as keys
+        """
         start_vals = {hp.name:hp.random_sample() for hp in self.hyperparams}
         return start_vals
 
     def optimize_continuous_problem(self, optimizer, start_vals):
-        if self.method == 'expected_improvement':
-            minimized = minimize(lambda x: self.expected_improvement(optimizer, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
-        elif self.method == 'upper_confidence_bound':
-            minimized = minimize(lambda x: self.upper_confidence_bound(optimizer, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
-        elif self.method == 'probability_of_improvement':
-            minimized = minimize(lambda x: self.probability_of_improvement(optimizer, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
-        elif self.method == 'generalized_expected_improvement':
-            minimized = minimize(lambda x: self.generalized_expected_improvement(optimizer, x, self.exploration_control), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+        """
+        Maximizes the acquisition function for problems with only continuous hyperparameters.
+        The optimization method used is L-BFGS-B.
+        Note that the maximization problem is converted to a minimization problem so that the 
+        function scipy.optimize.minimize can be applied.
+
+        Args:
+            optimizer: a fitted gaussian process regressor
+            start_vals: a numpy array with start values for the hyperparameters. Note that the
+                        order is assumed to be the same as in self.hyperparams
+
+        Returns:
+            a dictionary with a flag indicating success of the optimization and the 
+            resulting hyperparameter values
+        """
+        if self.acquisition_function == 'expected_improvement':
+            minimized = minimize(lambda x: -1 * self.expected_improvement(optimizer, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+        elif self.acquisition_function == 'upper_confidence_bound':
+            minimized = minimize(lambda x: -1 * self.upper_confidence_bound(optimizer, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+        elif self.acquisition_function == 'probability_of_improvement':
+            minimized = minimize(lambda x: -1 * self.probability_of_improvement(optimizer, x), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
+        elif self.acquisition_function == 'generalized_expected_improvement':
+            minimized = minimize(lambda x: -1 * self.generalized_expected_improvement(optimizer, x, self.exploration_control), start_vals, bounds=self.bounds_arr, method='L-BFGS-B')
         return minimized
 
     def optimize_categorical_problem(self, optimizer, start_vals):
-        xs = np.array([list(params.values()) for score, params in self.hyperparam_history])
+        """
+        Maximizes the acquisition function for problems with only categorical hyperparameters.
+
+        Args:
+            optimizer: a fitted gaussian process regressor
+            start_vals: a numpy array with start values for the hyperparameters. Note that the
+                        order is assumed to be the same as in self.hyperparams
+
+        Returns:
+            a dictionary with a flag indicating success of the optimization and the 
+            resulting hyperparameter values
+        """
+        raise NotImplementedError()
+
 
     def optimize_mixed_problem(self, optimizer, start_vals):
+        """
+        Maximizes the acquisition function for problems with mixed types of hyperparameters.
+        The optimization method used is Simmulated Annealing.
+
+        Args:
+            optimizer: a fitted gaussian process regressor
+            start_vals: a numpy array with start values for the hyperparameters. Note that the
+                        order is assumed to be the same as in self.hyperparams
+
+        Returns:
+            a dictionary with a flag indicating success of the optimization and the 
+            resulting hyperparameter values
+        """
         annealer = MixedAnnealer(self, optimizer)
         result = annealer.anneal()
         if np.isnan(result[1]):
@@ -161,9 +292,19 @@ class BayesianOptimizer(Optimizer):
         return minimized
 
     def get_next_hyperparameters(self, optimizer):
+        """
+        For a set of scores with hyperparameters and a fitted gaussian process regressor
+        find the hyperparameter values that maximise the acquisition function.
+
+        Args:
+            optimizer: a fitted gaussian process regressor
+
+        Returns:
+            a dictionary with parameter names as keys and parameter values as values
+        """
         best_params = {}
         for i in range(self.n_restarts_optimizer):
-            start_vals = self.get_start_values_arr()
+            start_vals = self.get_random_values_arr()
             if self.optimization_type == 'numerical':
                 minimized = self.optimize_continuous_problem(optimizer, start_vals)
             elif self.optimization_type == 'categorical':
@@ -184,22 +325,41 @@ class BayesianOptimizer(Optimizer):
                 return new_params                
         else:
             self.success = False
-            #assert False, 'optimizer did not converge!'
             warnings.warn('optimizer did not converge! Continuing with randomly sampled data...')
             self.non_convergence_count += 1
             return {hp.name:v for hp,v in zip(self.hyperparams, start_vals)}
 
-    def _random_sample(self):
-        sampled_params = {}
-        for hp in self.hyperparams:
-            sampled_params[hp.name] = hp.random_sample()
-        return sampled_params
-
     def _get_ordered_param_dict(self, params):
+        """
+        Convert an unordered dictionary of parameter values to an ordered 
+        list with the same order of parameters as in self.hyperparams
+
+        Args:
+            params: a dictionary of parameters with parameter names as keys 
+                    and parameter values as values
+
+        Returns:
+            a list of parameters with the same order as self.hyperparams
+        """
         return [params[hp.name] for hp in self.hyperparams]
 
-    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, start_vals=None):
+    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10):
         """
+        Given training data and optional validation data fit the machine learning model
+        sequentially to find optimal hyperparameters. If X_test and y_test are provided 
+        then the scoring/loss function is applied to the predictions on X_test 
+        rather than X_train.
+
+        Args:
+            X_train: a numpy array with training data. each row corresponds to a data point
+            y_train: a numpy array containing the target variable for the training data
+            X_test: a numpy array with validation data. each row corresponds to a data point
+            y_test: a numpy array containing the target variable for the validation data
+            n_iters: number of iterations of bayesian optimization. default is 10.
+
+        Returns:
+            best_params: a dictionary with optimized hyperparameters
+            best_model: an untrained model with the optimized hyperparameters 
         """
         if (X_test is None) and (y_test is None):
             X_test = X_train
@@ -220,7 +380,7 @@ class BayesianOptimizer(Optimizer):
                 optimizer.fit(xs,ys)
                 new_hyperparams = self.get_next_hyperparameters(optimizer)
             else:
-                new_hyperparams = self._random_sample()
+                new_hyperparams = self.get_random_values_dict()
 
             new_model = self.build_new_model(new_hyperparams)
             new_model.fit(X_train, y_train)
