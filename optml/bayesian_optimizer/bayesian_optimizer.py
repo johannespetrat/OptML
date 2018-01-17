@@ -7,7 +7,7 @@ from scipy.stats import norm
 
 from optml.optimizer_base import Optimizer, MissingValueException
 from optml.bayesian_optimizer.kernels import HammingKernel, WeightedHammingKernel
-from optml.bayesian_optimizer.annealer import MixedAnnealer
+from optml.bayesian_optimizer.optimizers import MixedAnnealer, CategoricalMaximizer, cartesian_product
 from sklearn.gaussian_process.kernels import Matern
 
 from optml.bayesian_optimizer.gp_categorical import GaussianProcessRegressorWithCategorical
@@ -264,7 +264,23 @@ class BayesianOptimizer(Optimizer):
             a dictionary with a flag indicating success of the optimization and the 
             resulting hyperparameter values
         """
-        raise NotImplementedError()
+        param_grid = [np.array(p.possible_values) for p in self.hyperparams]
+        n_combinations = len(cartesian_product(*param_grid))
+        if n_combinations > 1000:
+            annealer = MixedAnnealer(self, optimizer)
+            result = annealer.anneal()
+            if np.isnan(result[1]):
+                success = False
+            else:
+                success = True
+            max_vals = result[0]
+        else:
+            maximizer = CategoricalMaximizer(self, optimizer)
+            max_vals = maximizer.find_max()
+            success = True
+        minimized = {'success': success,
+                     'x': self._param_dict_to_arr(max_vals)}
+        return minimized
 
 
     def optimize_mixed_problem(self, optimizer, start_vals):
@@ -288,7 +304,7 @@ class BayesianOptimizer(Optimizer):
         else:
             success = True
         minimized = {'success': success,
-                     'x': self._get_ordered_param_dict(result[0])}
+                     'x': self._param_dict_to_arr(result[0])}
         return minimized
 
     def get_next_hyperparameters(self, optimizer):
@@ -329,7 +345,21 @@ class BayesianOptimizer(Optimizer):
             self.non_convergence_count += 1
             return {hp.name:v for hp,v in zip(self.hyperparams, start_vals)}
 
-    def _get_ordered_param_dict(self, params):
+    def _param_dict_to_arr(self, param_dict):
+        """
+        Convert an unordered dictionary of parameter values to an ordered 
+        list with the same order of parameters as in self.hyperparams
+
+        Args:
+            param_dict: a dictionary of parameters with parameter names as keys 
+                    and parameter values as values
+
+        Returns:
+            a list of parameters with the same order as self.hyperparams
+        """
+        return [param_dict[hp.name] for hp in self.hyperparams]
+
+    def _param_arr_to_dict(self, param_arr):
         """
         Convert an unordered dictionary of parameter values to an ordered 
         list with the same order of parameters as in self.hyperparams
@@ -341,7 +371,7 @@ class BayesianOptimizer(Optimizer):
         Returns:
             a list of parameters with the same order as self.hyperparams
         """
-        return [params[hp.name] for hp in self.hyperparams]
+        return {hp.name: p for hp, p in zip(self.hyperparams, param_arr)}
 
     def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10):
         """
@@ -374,7 +404,7 @@ class BayesianOptimizer(Optimizer):
                                                 normalize_y=True)
         for i in range(n_iters):            
             if i>0:           
-                xs = [self._get_ordered_param_dict(params) for score, params in self.hyperparam_history]
+                xs = [self._param_dict_to_arr(params) for score, params in self.hyperparam_history]
                 xs = np.array(xs, dtype=object)
                 ys = np.array([score for score, params in self.hyperparam_history])
                 optimizer.fit(xs,ys)
