@@ -15,13 +15,13 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
     name='optml',
 
-    version='0.2.1',
+    version='0.2.3',
 
     description='A library for hyperparameter optimization of ML models',
     long_description=long_description,
@@ -66,7 +66,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=['optml'],
+    packages=['optml', 'optml.bayesian_optimizer'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
