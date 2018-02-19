@@ -373,7 +373,7 @@ class BayesianOptimizer(Optimizer):
         """
         return {hp.name: p for hp, p in zip(self.hyperparams, param_arr)}
 
-    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10):
+    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, n_folds=None):
         """
         Given training data and optional validation data fit the machine learning model
         sequentially to find optimal hyperparameters. If X_test and y_test are provided 
@@ -396,6 +396,8 @@ class BayesianOptimizer(Optimizer):
             y_test = y_train
         elif (X_test is None) or (y_test is None):
             raise MissingValueException("Need to provide 'X_test' and 'y_test'")
+        elif (X_test is not None) and (y_test is not None) and (n_folds is not None):
+            raise Exception("Provide either 'X_test' and 'y_test' or 'n_folds'")
 
         self.non_convergence_count = 0
         optimizer = GaussianProcessRegressorWithCategorical(kernel=self.kernel,
@@ -413,8 +415,17 @@ class BayesianOptimizer(Optimizer):
                 new_hyperparams = self.get_random_values_dict()
 
             new_model = self.build_new_model(new_hyperparams)
-            new_model.fit(X_train, y_train)
-            score = self.eval_func(y_test, new_model.predict(X_test))
+            if n_folds is not None:
+                splits = self.get_kfold_split(n_folds, X_train)
+                scores = []
+                for train_idxs, test_idxs in splits:
+                    new_model.fit(X_train[train_idxs], y_train[train_idxs])
+                    scores.append(self.eval_func(y_train[test_idxs], new_model.predict(X_train[test_idxs])))
+                score = np.mean(scores)
+                del scores
+            else:
+                new_model.fit(X_train, y_train)
+                score = self.eval_func(y_test, new_model.predict(X_test))
             self.hyperparam_history.append((score, new_hyperparams))
         
         best_params, best_model = self.get_best_params_and_model()

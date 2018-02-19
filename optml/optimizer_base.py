@@ -2,6 +2,7 @@ import numpy as np
 import abc
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import KFold
 
 class Optimizer(object):
 
@@ -32,6 +33,21 @@ class Optimizer(object):
         else:
             raise NotImplementedError("{} not implemented for module '{}'".format(
                     str(type(self))[:-2].split('.')[-1], model.__module__))
+
+    def get_kfold_split(self, n_folds, X):
+        """
+        Splits X into n_folds folds
+
+        Args:
+            n_folds: integer specifying number of folds
+            X: data to be split
+
+        Returns:
+            a generator with tuples of form (train_idxs, test_idxs)
+        """
+        kf = KFold(n_splits=n_folds)
+        return kf.split(X)
+
 
     @abc.abstractmethod
     def get_next_hyperparameters(self):
