@@ -80,7 +80,7 @@ class GeneticOptimizer(Optimizer):
         best_idx = np.argmax([f['fitness'] for f in fitnesses])
         return fitnesses[best_idx]['params']
 
-    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, n_tries=5):
+    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, n_tries=5, n_folds=None):
         """
         n_tries: number of attempts to improve the parameters. stopping condition
         """
@@ -98,8 +98,18 @@ class GeneticOptimizer(Optimizer):
             params = self.crossover(parents)
             params = self.mutate(params)
 
-            new_params_with_fitness = self.calculate_fitness(params, X_train, y_train, X_test, y_test)
-            fitnesses.append(new_params_with_fitness)
+            if n_folds is not None:
+                splits = self.get_kfold_split(n_folds, X_train)
+                scores = []
+                for train_idxs, test_idxs in splits:
+                    new_params_with_fitness = self.calculate_fitness(params, 
+                                    X_train[train_idxs], y_train[train_idxs], 
+                                    X_train[test_idxs], y_train[test_idxs])
+                    scores.append(new_params_with_fitness['fitness'])
+                new_params_with_fitness['fitness'] = np.mean(scores)
+            else:
+                new_params_with_fitness = self.calculate_fitness(params, X_train, y_train, X_test, y_test)
+                fitnesses.append(new_params_with_fitness)
             self.hyperparam_history.append((new_params_with_fitness['fitness'],
                                            new_params_with_fitness['params']))
             it += 1
