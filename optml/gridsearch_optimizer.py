@@ -5,10 +5,9 @@ from multiprocessing import Pool
 from functools import partial
 from copy import deepcopy
 from optml.optimizer_base import Optimizer, MissingValueException
+from sklearn.model_selection import KFold
 
-def objective(model, model_module, eval_func, X_train, y_train, X_test, y_test, params):
-    model_params = model.get_params()
-    model_params.update(params)
+def build_new_model(model, model_params, model_module):
     if model_module == 'pipeline':
             new_model = model.set_params(**model_params)
     elif (model_module == 'sklearn') or (model_module == 'xgboost'):
@@ -17,11 +16,27 @@ def objective(model, model_module, eval_func, X_train, y_train, X_test, y_test, 
         raise NotImplementedError("Not yet implemented for 'statsmodels'")
     elif model_module == 'keras':
         new_model = model.__class__(**model_params)
+    return new_model
 
-    new_model.fit(X_train, y_train)
-    y_pred = new_model.predict(X_test)
-    y_true = y_test
-    score = eval_func(y_true, y_pred)
+def objective(model, model_module, eval_func, X_train, y_train, X_test, y_test, params, n_folds=None):
+    model_params = model.get_params()
+    model_params.update(params)
+
+    if n_folds is not None:
+        kf = KFold(n_splits=n_folds)
+        scores = []
+        splits = kf.split(X_train)
+        for train_idxs, test_idxs in splits:
+            new_model = build_new_model(model, model_params, model_module)
+            new_model.fit(X_train[train_idxs], y_train[train_idxs])
+            scores.append(self.eval_func(y_train[test_idxs], new_model.predict(X_train[test_idxs])))
+        score = np.mean(scores)
+    else:
+        new_model = build_new_model(model, model_params, model_module)
+        new_model.fit(X_train, y_train)
+        y_pred = new_model.predict(X_test)
+        y_true = y_test
+        score = eval_func(y_true, y_pred)
     return (score, params)
 
 class GridSearchOptimizer(Optimizer):
@@ -53,7 +68,7 @@ class GridSearchOptimizer(Optimizer):
             grid.append(dict(params))
         return grid
 
-    def fit(self, X_train, y_train, X_test=None, y_test=None):
+    def fit(self, X_train, y_train, X_test=None, y_test=None, n_folds=None):
         """
         """
         if (X_test is None) and (y_test is None):
@@ -61,6 +76,8 @@ class GridSearchOptimizer(Optimizer):
             y_test = y_train
         elif (X_test is None) or (y_test is None):
             raise MissingValueException("Need to provide 'X_test' and 'y_test'")
+        elif (X_test is not None) and (y_test is not None) and (n_folds is not None):
+            raise Exception("Provide either 'X_test' and 'y_test' or 'n_folds'")
 
         fun = partial(objective, deepcopy(self.model), 
                                  deepcopy(self.model_module), 

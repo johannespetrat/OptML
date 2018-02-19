@@ -34,7 +34,7 @@ class HyperoptOptimizer(Optimizer):
         return param_space
 
 
-    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, start_vals=None):
+    def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, start_vals=None, n_folds=None):
         """
         """
         if (X_test is None) and (y_test is None):
@@ -42,15 +42,26 @@ class HyperoptOptimizer(Optimizer):
             y_test = y_train
         elif (X_test is None) or (y_test is None):
             raise MissingValueException("Need to provide 'X_test' and 'y_test'")
+        elif (X_test is not None) and (y_test is not None) and (n_folds is not None):
+            raise Exception("Provide either 'X_test' and 'y_test' or 'n_folds'")
 
         def objective(params):
             model_params = self.model.get_params()
             model_params.update(params)
-            self.model = self.build_new_model(model_params)
-            self.model.fit(X_train, y_train)
-            y_pred = self.model.predict(X_test)
-            y_true = y_test
-            score = -self.eval_func(y_true, y_pred)
+            if n_folds is not None:
+                splits = self.get_kfold_split(n_folds, X_train)
+                scores = []
+                for train_idxs, test_idxs in splits:
+                    self.model = self.build_new_model(model_params)
+                    self.model.fit(X_train[train_idxs], y_train[train_idxs])
+                    y_pred = self.model.predict(X_train[test_idxs])
+                    scores.append(-self.eval_func(y_train[test_idxs], y_pred))
+                score = np.mean(scores)
+            else:
+                self.model = self.build_new_model(model_params)
+                self.model.fit(X_train, y_train)
+                y_pred = self.model.predict(X_test)
+                score = -self.eval_func(y_test, y_pred)
             return score
         
         self.trials = Trials()
