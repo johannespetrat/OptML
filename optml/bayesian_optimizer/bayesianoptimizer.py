@@ -414,11 +414,11 @@ class BayesianOptimizer(Optimizer):
             else:
                 new_hyperparams = self.get_random_values_dict()
 
-            new_model = self.build_new_model(new_hyperparams)
             if n_folds is not None:
                 splits = self.get_kfold_split(n_folds, X_train)
                 scores = []
                 for train_idxs, test_idxs in splits:
+                    new_model = self.build_new_model(new_hyperparams)
                     new_model.fit(X_train[train_idxs], y_train[train_idxs])
                     scores.append(self.eval_func(y_train[test_idxs], new_model.predict(X_train[test_idxs])))
                 score = np.mean(scores)
