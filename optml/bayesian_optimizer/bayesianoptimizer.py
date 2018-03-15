@@ -25,7 +25,7 @@ class BayesianOptimizer(Optimizer):
         model: a model (currently supports scikit-learn, xgboost, or a class 
                derived from optml.models.Model)
         hyperparams: a list of Parameter instances
-        eval_func: loss function to be minimized. Takes input (y_true, y_predicted) where 
+        eval_func: score function to be maximized. Takes input (y_true, y_predicted) where 
             y_true and y_predicted are numpy arrays
 
     Attributes:
@@ -34,7 +34,7 @@ class BayesianOptimizer(Optimizer):
         hyperparam_history: a list of dictionaries with parameters and scores
         hyperparams: the list of parameters that the model is optimized over
         eval_func: loss function to be minimized
-        model_module: can be 'sklearn', 'pipeline', 'xgboost', 'keras' or user-defined model
+        model_module: can be 'sklearn', 'pipeline', 'xgboost_sklearn', 'keras' or user-defined model
         param_dict: dictionary where key=parameter name and value is the Parameter instance
         n_restart_optimizer: number of retries if maximization of acquisition function is 
             unsuccessful
@@ -45,15 +45,18 @@ class BayesianOptimizer(Optimizer):
         success: Flag indicating whether acquisition function could successfully be maximized
         acquisition_function: 
     """
-    def __init__(self, model, hyperparams, eval_func, acquisition_function='expected_improvement',
-                 n_restarts_optimizer=10, exploration_control=0.01):
-        super(BayesianOptimizer, self).__init__(model, hyperparams, eval_func)
+    def __init__(self, model, hyperparams, eval_func, start_vals=None, 
+                 acquisition_function='expected_improvement',
+                 n_restarts_optimizer=10, normalize=False,
+                 exploration_control=0.01):
+        super(BayesianOptimizer, self).__init__(model, hyperparams, eval_func, start_vals)
         self.get_type_of_optimization()
         self.kernel = self.choose_kernel()
         self.n_restarts_optimizer = n_restarts_optimizer
         self.eval_func = eval_func
         self.set_hyperparam_bounds()
         self.success = None
+        self.normalize = normalize
         self.acquisition_function = acquisition_function
         if acquisition_function == 'generalized_expected_improvement':
             self.exploration_control = exploration_control
@@ -194,36 +197,6 @@ class BayesianOptimizer(Optimizer):
             gamma = (mu[0] - current_best)/std[0]
             return norm.cdf(gamma)
 
-    def get_random_values_arr(self):
-        """
-        Generates a numpy array with randomly sampled values for 
-        each hyperparameter. Note that the order is the same as in 
-        self.hyperparams.
-
-        Args:
-            None
-
-        Returns:
-            a numpy array with potentially mixed types
-        """
-        start_vals = []
-        for hp in self.hyperparams:
-            start_vals.append(hp.random_sample())
-        return np.array([start_vals], dtype=object)
-
-    def get_random_values_dict(self):
-        """
-        Generates a dictionary with randomly sampled values for 
-        each hyperparameter.
-
-        Args:
-            None
-
-        Returns:
-            a dictionary with parameter names as keys
-        """
-        start_vals = {hp.name:hp.random_sample() for hp in self.hyperparams}
-        return start_vals
 
     def optimize_continuous_problem(self, optimizer, start_vals):
         """
@@ -320,7 +293,10 @@ class BayesianOptimizer(Optimizer):
         """
         best_params = {}
         for i in range(self.n_restarts_optimizer):
-            start_vals = self.get_random_values_arr()
+            if self.start_vals is None:
+                start_vals = self.get_random_values_arr()
+            else:
+                start_vals = self.get_default_values_arr()
             if self.optimization_type == 'numerical':
                 minimized = self.optimize_continuous_problem(optimizer, start_vals)
             elif self.optimization_type == 'categorical':
@@ -343,7 +319,7 @@ class BayesianOptimizer(Optimizer):
             self.success = False
             warnings.warn('optimizer did not converge! Continuing with randomly sampled data...')
             self.non_convergence_count += 1
-            return {hp.name:v for hp,v in zip(self.hyperparams, start_vals)}
+            return {hp.name:v for hp,v in zip(self.hyperparams, start_vals[0])}
 
     def _param_dict_to_arr(self, param_dict):
         """
@@ -372,6 +348,51 @@ class BayesianOptimizer(Optimizer):
             a list of parameters with the same order as self.hyperparams
         """
         return {hp.name: p for hp, p in zip(self.hyperparams, param_arr)}
+
+    def _fit_and_score_model(self, params, X_train, y_train, X_test, y_test, n_folds):
+        if n_folds is not None:
+            splits = self.get_kfold_split(n_folds, X_train)
+            scores = []
+            for train_idxs, test_idxs in splits:
+                if self.model_module == 'xgboost':
+                    dtrain = self.convert_to_xgboost_dataset(X_train[train_idxs], y_train[train_idxs])
+                    dtest = self.convert_to_xgboost_dataset(X_train[test_idxs], y_train[test_idxs])
+                    fitted_model = self.model.train(params, dtrain, evals=[(dtest, 'test')],
+                        num_boost_round=params['n_estimators'], verbose_eval=False)
+                    y_pred = fitted_model.predict(dtest)
+                else:
+                    new_model = self.build_new_model(params)
+                    new_model.fit(X_train[train_idxs], y_train[train_idxs])
+                    y_pred = new_model.predict(X_train[test_idxs])
+                scores.append(self.eval_func(y_train[test_idxs], y_pred))
+                score = np.mean(scores)
+        else:
+            if self.model_module == 'xgboost':
+                dtrain = self.convert_to_xgboost_dataset(X_train, y_train)
+                dtest = self.convert_to_xgboost_dataset(X_test, y_test)
+                fitted_model = self.model.train(params, dtrain, evals=[(dtest, 'test')],
+                        num_boost_round=params['n_estimators'], verbose_eval=False)
+                y_pred = fitted_model.predict(dtest)
+            else:
+                new_model = self.build_new_model(params)
+                new_model.fit(X_train, y_train)
+                y_pred = new_model.predict(X_test)
+            score = self.eval_func(y_test, y_pred)
+        return score
+
+    def _normalize_params(self, x):
+        numeric_idxs = np.array([hp.param_type in ['integer', 'continuous'] for hp in self.hyperparams])
+        means = np.array([(hp.upper - hp.lower)/2. for hp in self.hyperparams[numeric_idxs]])
+        x[numeric_idxs, :] -= means
+        # ranges can only be computed for numerical parameters
+        ranges = []
+        for hp, is_num in zip(self.hyperparams, numeric_idxs):
+            if is_num:
+                ranges.append(hp.upper - hp.lower)
+            else:
+                ranges.append(0)
+        x[:,ranges>0] = x[:,ranges>0]/ranges[np.newaxis, ranges>0]
+        return x
 
     def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, n_folds=None):
         """
@@ -408,24 +429,19 @@ class BayesianOptimizer(Optimizer):
             if i>0:           
                 xs = [self._param_dict_to_arr(params) for score, params in self.hyperparam_history]
                 xs = np.array(xs, dtype=object)
+                if self.normalize:
+                    xs = self._normalize_params(xs)
                 ys = np.array([score for score, params in self.hyperparam_history])
                 optimizer.fit(xs,ys)
                 new_hyperparams = self.get_next_hyperparameters(optimizer)
             else:
-                new_hyperparams = self.get_random_values_dict()
+                if self.start_vals is None:
+                    new_hyperparams = self.get_random_values_dict()
+                else:
+                    new_hyperparams = self.get_default_values_dict()
+            score = self._fit_and_score_model(new_hyperparams, X_train, y_train, X_test, y_test, 
+                                              n_folds)
 
-            if n_folds is not None:
-                splits = self.get_kfold_split(n_folds, X_train)
-                scores = []
-                for train_idxs, test_idxs in splits:
-                    new_model = self.build_new_model(new_hyperparams)
-                    new_model.fit(X_train[train_idxs], y_train[train_idxs])
-                    scores.append(self.eval_func(y_train[test_idxs], new_model.predict(X_train[test_idxs])))
-                score = np.mean(scores)
-                del scores
-            else:
-                new_model.fit(X_train, y_train)
-                score = self.eval_func(y_test, new_model.predict(X_test))
             self.hyperparam_history.append((score, new_hyperparams))
         
         best_params, best_model = self.get_best_params_and_model()
