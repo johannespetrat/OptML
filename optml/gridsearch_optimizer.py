@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 def build_new_model(model, model_params, model_module):
     if model_module == 'pipeline':
             new_model = model.set_params(**model_params)
-    elif (model_module == 'sklearn') or (model_module == 'xgboost'):
+    elif (model_module == 'sklearn') or (model_module == 'xgboost_sklearn'):
         new_model = model.__class__(**model_params)
     elif model_module == 'statsmodels':
         raise NotImplementedError("Not yet implemented for 'statsmodels'")

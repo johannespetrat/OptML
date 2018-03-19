@@ -81,7 +81,7 @@ class BayesianOptimizer(Optimizer):
             param_types = ['categorical' if hp.param_type=='categorical' else 'numeric' for hp in self.hyperparams]
             kernel = WeightedHammingKernel()
         else:
-            kernel = Matern()
+            kernel = Matern(nu=1.5, length_scale_bounds=(0.1, 100.0))
         return kernel
 
     def get_type_of_optimization(self):
@@ -349,41 +349,10 @@ class BayesianOptimizer(Optimizer):
         """
         return {hp.name: p for hp, p in zip(self.hyperparams, param_arr)}
 
-    def _fit_and_score_model(self, params, X_train, y_train, X_test, y_test, n_folds):
-        if n_folds is not None:
-            splits = self.get_kfold_split(n_folds, X_train)
-            scores = []
-            for train_idxs, test_idxs in splits:
-                if self.model_module == 'xgboost':
-                    dtrain = self.convert_to_xgboost_dataset(X_train[train_idxs], y_train[train_idxs])
-                    dtest = self.convert_to_xgboost_dataset(X_train[test_idxs], y_train[test_idxs])
-                    fitted_model = self.model.train(params, dtrain, evals=[(dtest, 'test')],
-                        num_boost_round=params['n_estimators'], verbose_eval=False)
-                    y_pred = fitted_model.predict(dtest)
-                else:
-                    new_model = self.build_new_model(params)
-                    new_model.fit(X_train[train_idxs], y_train[train_idxs])
-                    y_pred = new_model.predict(X_train[test_idxs])
-                scores.append(self.eval_func(y_train[test_idxs], y_pred))
-                score = np.mean(scores)
-        else:
-            if self.model_module == 'xgboost':
-                dtrain = self.convert_to_xgboost_dataset(X_train, y_train)
-                dtest = self.convert_to_xgboost_dataset(X_test, y_test)
-                fitted_model = self.model.train(params, dtrain, evals=[(dtest, 'test')],
-                        num_boost_round=params['n_estimators'], verbose_eval=False)
-                y_pred = fitted_model.predict(dtest)
-            else:
-                new_model = self.build_new_model(params)
-                new_model.fit(X_train, y_train)
-                y_pred = new_model.predict(X_test)
-            score = self.eval_func(y_test, y_pred)
-        return score
-
     def _normalize_params(self, x):
         numeric_idxs = np.array([hp.param_type in ['integer', 'continuous'] for hp in self.hyperparams])
-        means = np.array([(hp.upper - hp.lower)/2. for hp in self.hyperparams[numeric_idxs]])
-        x[numeric_idxs, :] -= means
+        means = np.array([(hp.upper - hp.lower)/2. for hp in np.array(self.hyperparams)[numeric_idxs]])
+        x[:, numeric_idxs] -= means
         # ranges can only be computed for numerical parameters
         ranges = []
         for hp, is_num in zip(self.hyperparams, numeric_idxs):
@@ -391,7 +360,8 @@ class BayesianOptimizer(Optimizer):
                 ranges.append(hp.upper - hp.lower)
             else:
                 ranges.append(0)
-        x[:,ranges>0] = x[:,ranges>0]/ranges[np.newaxis, ranges>0]
+        ranges = np.array(ranges)
+        x[:,ranges>0] = x[:,ranges>0]/ranges[ranges>0]
         return x
 
     def fit(self, X_train, y_train, X_test=None, y_test=None, n_iters=10, n_folds=None):
@@ -439,6 +409,7 @@ class BayesianOptimizer(Optimizer):
                     new_hyperparams = self.get_random_values_dict()
                 else:
                     new_hyperparams = self.get_default_values_dict()
+            self.check_parameters(new_hyperparams)
             score = self._fit_and_score_model(new_hyperparams, X_train, y_train, X_test, y_test, 
                                               n_folds)
 
